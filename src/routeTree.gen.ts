@@ -10,33 +10,179 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedHubRouteRouteImport } from './routes/_authenticated/_hub/route'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as AuthenticatedHubDashboardRouteImport } from './routes/_authenticated/_hub/dashboard'
+import { Route as AuthenticatedHubReviewRouteImport } from './routes/_authenticated/_hub/review'
+import { Route as AuthenticatedHubSettingsRouteImport } from './routes/_authenticated/_hub/settings'
+import { Route as AuthenticatedHubUploadRouteImport } from './routes/_authenticated/_hub/upload'
+import { Route as AuthenticatedHubLibraryIndexRouteImport } from './routes/_authenticated/_hub/library.index'
+import { Route as AuthenticatedHubLibraryMaterialIdRouteImport } from './routes/_authenticated/_hub/library.$materialId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedHubRouteRoute = AuthenticatedHubRouteRouteImport.update({
+  id: '/_hub',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedHubDashboardRoute =
+  AuthenticatedHubDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedHubRouteRoute,
+  } as any)
+const AuthenticatedHubReviewRoute = AuthenticatedHubReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => AuthenticatedHubRouteRoute,
+} as any)
+const AuthenticatedHubSettingsRoute =
+  AuthenticatedHubSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedHubRouteRoute,
+  } as any)
+const AuthenticatedHubUploadRoute = AuthenticatedHubUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => AuthenticatedHubRouteRoute,
+} as any)
+const AuthenticatedHubLibraryIndexRoute =
+  AuthenticatedHubLibraryIndexRouteImport.update({
+    id: '/library/',
+    path: '/library/',
+    getParentRoute: () => AuthenticatedHubRouteRoute,
+  } as any)
+const AuthenticatedHubLibraryMaterialIdRoute =
+  AuthenticatedHubLibraryMaterialIdRouteImport.update({
+    id: '/library/$materialId',
+    path: '/library/$materialId',
+    getParentRoute: () => AuthenticatedHubRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
+  '/dashboard': typeof AuthenticatedHubDashboardRoute
+  '/review': typeof AuthenticatedHubReviewRoute
+  '/settings': typeof AuthenticatedHubSettingsRoute
+  '/upload': typeof AuthenticatedHubUploadRoute
+  '/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
+  '/library/': typeof AuthenticatedHubLibraryIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
+  '/dashboard': typeof AuthenticatedHubDashboardRoute
+  '/review': typeof AuthenticatedHubReviewRoute
+  '/settings': typeof AuthenticatedHubSettingsRoute
+  '/upload': typeof AuthenticatedHubUploadRoute
+  '/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
+  '/library': typeof AuthenticatedHubLibraryIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/_hub': typeof AuthenticatedHubRouteRouteWithChildren
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
+  '/_authenticated/_hub/dashboard': typeof AuthenticatedHubDashboardRoute
+  '/_authenticated/_hub/review': typeof AuthenticatedHubReviewRoute
+  '/_authenticated/_hub/settings': typeof AuthenticatedHubSettingsRoute
+  '/_authenticated/_hub/upload': typeof AuthenticatedHubUploadRoute
+  '/_authenticated/_hub/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
+  '/_authenticated/_hub/library/': typeof AuthenticatedHubLibraryIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/onboarding'
+    | '/api/transcribe'
+    | '/dashboard'
+    | '/review'
+    | '/settings'
+    | '/upload'
+    | '/library/$materialId'
+    | '/library/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/onboarding'
+    | '/api/transcribe'
+    | '/dashboard'
+    | '/review'
+    | '/settings'
+    | '/upload'
+    | '/library/$materialId'
+    | '/library'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/reset-password'
+    | '/_authenticated/_hub'
+    | '/_authenticated/onboarding'
+    | '/api/transcribe'
+    | '/_authenticated/_hub/dashboard'
+    | '/_authenticated/_hub/review'
+    | '/_authenticated/_hub/settings'
+    | '/_authenticated/_hub/upload'
+    | '/_authenticated/_hub/library/$materialId'
+    | '/_authenticated/_hub/library/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiTranscribeRoute: typeof ApiTranscribeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +194,136 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/_hub': {
+      id: '/_authenticated/_hub'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedHubRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/_hub/dashboard': {
+      id: '/_authenticated/_hub/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedHubDashboardRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
+    '/_authenticated/_hub/review': {
+      id: '/_authenticated/_hub/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof AuthenticatedHubReviewRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
+    '/_authenticated/_hub/settings': {
+      id: '/_authenticated/_hub/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedHubSettingsRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
+    '/_authenticated/_hub/upload': {
+      id: '/_authenticated/_hub/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof AuthenticatedHubUploadRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
+    '/_authenticated/_hub/library/': {
+      id: '/_authenticated/_hub/library/'
+      path: '/library'
+      fullPath: '/library/'
+      preLoaderRoute: typeof AuthenticatedHubLibraryIndexRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
+    '/_authenticated/_hub/library/$materialId': {
+      id: '/_authenticated/_hub/library/$materialId'
+      path: '/library/$materialId'
+      fullPath: '/library/$materialId'
+      preLoaderRoute: typeof AuthenticatedHubLibraryMaterialIdRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
   }
 }
 
+interface AuthenticatedHubRouteRouteChildren {
+  AuthenticatedHubDashboardRoute: typeof AuthenticatedHubDashboardRoute
+  AuthenticatedHubReviewRoute: typeof AuthenticatedHubReviewRoute
+  AuthenticatedHubSettingsRoute: typeof AuthenticatedHubSettingsRoute
+  AuthenticatedHubUploadRoute: typeof AuthenticatedHubUploadRoute
+  AuthenticatedHubLibraryMaterialIdRoute: typeof AuthenticatedHubLibraryMaterialIdRoute
+  AuthenticatedHubLibraryIndexRoute: typeof AuthenticatedHubLibraryIndexRoute
+}
+
+const AuthenticatedHubRouteRouteChildren: AuthenticatedHubRouteRouteChildren = {
+  AuthenticatedHubDashboardRoute: AuthenticatedHubDashboardRoute,
+  AuthenticatedHubReviewRoute: AuthenticatedHubReviewRoute,
+  AuthenticatedHubSettingsRoute: AuthenticatedHubSettingsRoute,
+  AuthenticatedHubUploadRoute: AuthenticatedHubUploadRoute,
+  AuthenticatedHubLibraryMaterialIdRoute:
+    AuthenticatedHubLibraryMaterialIdRoute,
+  AuthenticatedHubLibraryIndexRoute: AuthenticatedHubLibraryIndexRoute,
+}
+
+const AuthenticatedHubRouteRouteWithChildren =
+  AuthenticatedHubRouteRoute._addFileChildren(
+    AuthenticatedHubRouteRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedHubRouteRoute: typeof AuthenticatedHubRouteRouteWithChildren
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedHubRouteRoute: AuthenticatedHubRouteRouteWithChildren,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  ApiTranscribeRoute: ApiTranscribeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
