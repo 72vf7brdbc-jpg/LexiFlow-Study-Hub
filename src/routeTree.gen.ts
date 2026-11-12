@@ -18,6 +18,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedHubDashboardRouteImport } from './routes/_authenticated/_hub/dashboard'
 import { Route as AuthenticatedHubUploadRouteImport } from './routes/_authenticated/_hub/upload'
+import { Route as AuthenticatedHubLibraryIndexRouteImport } from './routes/_authenticated/_hub/library.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -63,6 +64,12 @@ const AuthenticatedHubUploadRoute = AuthenticatedHubUploadRouteImport.update({
   path: '/upload',
   getParentRoute: () => AuthenticatedHubRouteRoute,
 } as any)
+const AuthenticatedHubLibraryIndexRoute =
+  AuthenticatedHubLibraryIndexRouteImport.update({
+    id: '/library/',
+    path: '/library/',
+    getParentRoute: () => AuthenticatedHubRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/dashboard': typeof AuthenticatedHubDashboardRoute
   '/upload': typeof AuthenticatedHubUploadRoute
+  '/library/': typeof AuthenticatedHubLibraryIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -81,6 +89,7 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/dashboard': typeof AuthenticatedHubDashboardRoute
   '/upload': typeof AuthenticatedHubUploadRoute
+  '/library': typeof AuthenticatedHubLibraryIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,6 +102,7 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/_hub/dashboard': typeof AuthenticatedHubDashboardRoute
   '/_authenticated/_hub/upload': typeof AuthenticatedHubUploadRoute
+  '/_authenticated/_hub/library/': typeof AuthenticatedHubLibraryIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/dashboard'
     | '/upload'
+    | '/library/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/dashboard'
     | '/upload'
+    | '/library'
   id:
     | '__root__'
     | '/'
@@ -124,6 +136,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/_authenticated/_hub/dashboard'
     | '/_authenticated/_hub/upload'
+    | '/_authenticated/_hub/library/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -199,17 +212,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHubUploadRouteImport
       parentRoute: typeof AuthenticatedHubRouteRoute
     }
+    '/_authenticated/_hub/library/': {
+      id: '/_authenticated/_hub/library/'
+      path: '/library'
+      fullPath: '/library/'
+      preLoaderRoute: typeof AuthenticatedHubLibraryIndexRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
   }
 }
 
 interface AuthenticatedHubRouteRouteChildren {
   AuthenticatedHubDashboardRoute: typeof AuthenticatedHubDashboardRoute
   AuthenticatedHubUploadRoute: typeof AuthenticatedHubUploadRoute
+  AuthenticatedHubLibraryIndexRoute: typeof AuthenticatedHubLibraryIndexRoute
 }
 
 const AuthenticatedHubRouteRouteChildren: AuthenticatedHubRouteRouteChildren = {
   AuthenticatedHubDashboardRoute: AuthenticatedHubDashboardRoute,
   AuthenticatedHubUploadRoute: AuthenticatedHubUploadRoute,
+  AuthenticatedHubLibraryIndexRoute: AuthenticatedHubLibraryIndexRoute,
 }
 
 const AuthenticatedHubRouteRouteWithChildren =
