@@ -103,7 +103,7 @@ export function LoadingScreen({ label = "Caricamento…" }: { label?: string }) 
   );
 }
 
-export function InlineError({ title = "Qualcosa non ha funzionato", message, onRetry }: { title?: string; message?: string; onRetry?: () => void }) {
+export function InlineError({ title = "Qualcosa non ha funzionato", message, onRetry }: { title?: string | undefined; message?: string | undefined; onRetry?: (() => void) | undefined }) {
   return (
     <div className="paper mx-auto max-w-md px-6 py-10 text-center">
       <p className="eyebrow mb-2 text-burgundy">Avviso</p>

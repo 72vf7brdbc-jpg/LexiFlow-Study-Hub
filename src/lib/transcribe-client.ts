@@ -14,7 +14,7 @@ export async function transcribeRecording(file: File, signal?: AbortSignal): Pro
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: form,
-    signal,
+    ...(signal ? { signal } : {}),
   });
 
   if (!res.ok) {

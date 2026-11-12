@@ -64,7 +64,10 @@ function SettingsPage() {
       .update({ display_name: name.trim().slice(0, 60) || null, native_language: lang, cefr_level: level, goal, days_per_week: days })
       .eq("id", profile.id);
     setSaving(false);
-    if (error) return toast.error("Salvataggio non riuscito");
+    if (error) {
+      toast.error("Salvataggio non riuscito");
+      return;
+    }
     await queryClient.invalidateQueries({ queryKey: ["profile"] });
     toast.success("Profilo aggiornato");
   }
