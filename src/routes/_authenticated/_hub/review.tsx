@@ -20,7 +20,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, InlineError, LoadingScreen, ProgressRing, Stamp } from "@/components/lexi/ui-bits";
+import { EmptyState, InlineError, LoadingScreen, Stamp } from "@/components/lexi/ui-bits";
 import { Button } from "@/components/ui/button";
 import { useVoiceAnswer } from "@/hooks/use-voice-answer";
 import { supabase } from "@/integrations/supabase/client";
@@ -490,5 +490,3 @@ function SummaryStat({ icon, value, label }: { icon: React.ReactNode; value: str
   );
 }
 
-// Unused import guard for ProgressRing tree-shaking consistency
-void ProgressRing;
