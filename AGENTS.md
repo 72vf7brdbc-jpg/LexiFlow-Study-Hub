@@ -28,3 +28,8 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- Study rules (spaced repetition, streak, XP, session size, answer grading) live as pure functions in `src/lib/{srs,streak,plan,grading}.ts` and are covered by `src/test/study-rules.test.ts`; change them there, never inline in components or server functions.
+- AI analysis of uploads runs only in `src/lib/ai/*.server.ts` behind the `analyzeMaterial` server function; voice transcription runs through the `/api/transcribe` server route, which verifies the bearer token itself.
+- Signed-in pages live under `src/routes/_authenticated/_hub/` so the hub layout can redirect un-onboarded users to `/onboarding` before rendering.
