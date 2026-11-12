@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedHubRouteRouteImport } from './routes/_authenticated/_hub/route'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as AuthenticatedHubDashboardRouteImport } from './routes/_authenticated/_hub/dashboard'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -35,6 +37,10 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedHubRouteRoute = AuthenticatedHubRouteRouteImport.update({
+  id: '/_hub',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -45,6 +51,12 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedHubDashboardRoute =
+  AuthenticatedHubDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedHubRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -52,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/dashboard': typeof AuthenticatedHubDashboardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -59,6 +72,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/dashboard': typeof AuthenticatedHubDashboardRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -66,23 +80,38 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/_hub': typeof AuthenticatedHubRouteRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/_authenticated/_hub/dashboard': typeof AuthenticatedHubDashboardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/reset-password' | '/onboarding' | '/api/transcribe'
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/onboarding'
+    | '/api/transcribe'
+    | '/dashboard'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/reset-password' | '/onboarding' | '/api/transcribe'
+  to:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/onboarding'
+    | '/api/transcribe'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/_authenticated/_hub'
     | '/_authenticated/onboarding'
     | '/api/transcribe'
+    | '/_authenticated/_hub/dashboard'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -123,6 +152,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/_hub': {
+      id: '/_authenticated/_hub'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedHubRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -137,14 +173,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/_hub/dashboard': {
+      id: '/_authenticated/_hub/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedHubDashboardRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
   }
 }
 
+interface AuthenticatedHubRouteRouteChildren {
+  AuthenticatedHubDashboardRoute: typeof AuthenticatedHubDashboardRoute
+}
+
+const AuthenticatedHubRouteRouteChildren: AuthenticatedHubRouteRouteChildren = {
+  AuthenticatedHubDashboardRoute: AuthenticatedHubDashboardRoute,
+}
+
+const AuthenticatedHubRouteRouteWithChildren =
+  AuthenticatedHubRouteRoute._addFileChildren(
+    AuthenticatedHubRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedHubRouteRoute: typeof AuthenticatedHubRouteRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedHubRouteRoute: AuthenticatedHubRouteRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }
 
