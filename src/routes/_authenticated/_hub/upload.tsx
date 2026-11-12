@@ -16,11 +16,11 @@ import { goalName } from "@/lib/study-config";
 import { cn } from "@/lib/utils";
 
 type Mode = "photo" | "file" | "text";
-type UploadSearch = { mode?: Mode };
+type UploadSearch = { mode?: Mode | undefined };
 
 export const Route = createFileRoute("/_authenticated/_hub/upload")({
   validateSearch: (s: Record<string, unknown>): UploadSearch => ({
-    mode: s.mode === "photo" || s.mode === "file" || s.mode === "text" ? s.mode : undefined,
+    mode: s["mode"] === "photo" || s["mode"] === "file" || s["mode"] === "text" ? s["mode"] : undefined,
   }),
   head: () => ({
     meta: [

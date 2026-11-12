@@ -18,6 +18,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedHubDashboardRouteImport } from './routes/_authenticated/_hub/dashboard'
 import { Route as AuthenticatedHubReviewRouteImport } from './routes/_authenticated/_hub/review'
+import { Route as AuthenticatedHubSettingsRouteImport } from './routes/_authenticated/_hub/settings'
 import { Route as AuthenticatedHubUploadRouteImport } from './routes/_authenticated/_hub/upload'
 import { Route as AuthenticatedHubLibraryIndexRouteImport } from './routes/_authenticated/_hub/library.index'
 import { Route as AuthenticatedHubLibraryMaterialIdRouteImport } from './routes/_authenticated/_hub/library.$materialId'
@@ -66,6 +67,12 @@ const AuthenticatedHubReviewRoute = AuthenticatedHubReviewRouteImport.update({
   path: '/review',
   getParentRoute: () => AuthenticatedHubRouteRoute,
 } as any)
+const AuthenticatedHubSettingsRoute =
+  AuthenticatedHubSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedHubRouteRoute,
+  } as any)
 const AuthenticatedHubUploadRoute = AuthenticatedHubUploadRouteImport.update({
   id: '/upload',
   path: '/upload',
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/dashboard': typeof AuthenticatedHubDashboardRoute
   '/review': typeof AuthenticatedHubReviewRoute
+  '/settings': typeof AuthenticatedHubSettingsRoute
   '/upload': typeof AuthenticatedHubUploadRoute
   '/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
   '/library/': typeof AuthenticatedHubLibraryIndexRoute
@@ -104,6 +112,7 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/dashboard': typeof AuthenticatedHubDashboardRoute
   '/review': typeof AuthenticatedHubReviewRoute
+  '/settings': typeof AuthenticatedHubSettingsRoute
   '/upload': typeof AuthenticatedHubUploadRoute
   '/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
   '/library': typeof AuthenticatedHubLibraryIndexRoute
@@ -119,6 +128,7 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/_hub/dashboard': typeof AuthenticatedHubDashboardRoute
   '/_authenticated/_hub/review': typeof AuthenticatedHubReviewRoute
+  '/_authenticated/_hub/settings': typeof AuthenticatedHubSettingsRoute
   '/_authenticated/_hub/upload': typeof AuthenticatedHubUploadRoute
   '/_authenticated/_hub/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
   '/_authenticated/_hub/library/': typeof AuthenticatedHubLibraryIndexRoute
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/dashboard'
     | '/review'
+    | '/settings'
     | '/upload'
     | '/library/$materialId'
     | '/library/'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/dashboard'
     | '/review'
+    | '/settings'
     | '/upload'
     | '/library/$materialId'
     | '/library'
@@ -159,6 +171,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/_authenticated/_hub/dashboard'
     | '/_authenticated/_hub/review'
+    | '/_authenticated/_hub/settings'
     | '/_authenticated/_hub/upload'
     | '/_authenticated/_hub/library/$materialId'
     | '/_authenticated/_hub/library/'
@@ -237,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHubReviewRouteImport
       parentRoute: typeof AuthenticatedHubRouteRoute
     }
+    '/_authenticated/_hub/settings': {
+      id: '/_authenticated/_hub/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedHubSettingsRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
     '/_authenticated/_hub/upload': {
       id: '/_authenticated/_hub/upload'
       path: '/upload'
@@ -264,6 +284,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedHubRouteRouteChildren {
   AuthenticatedHubDashboardRoute: typeof AuthenticatedHubDashboardRoute
   AuthenticatedHubReviewRoute: typeof AuthenticatedHubReviewRoute
+  AuthenticatedHubSettingsRoute: typeof AuthenticatedHubSettingsRoute
   AuthenticatedHubUploadRoute: typeof AuthenticatedHubUploadRoute
   AuthenticatedHubLibraryMaterialIdRoute: typeof AuthenticatedHubLibraryMaterialIdRoute
   AuthenticatedHubLibraryIndexRoute: typeof AuthenticatedHubLibraryIndexRoute
@@ -272,6 +293,7 @@ interface AuthenticatedHubRouteRouteChildren {
 const AuthenticatedHubRouteRouteChildren: AuthenticatedHubRouteRouteChildren = {
   AuthenticatedHubDashboardRoute: AuthenticatedHubDashboardRoute,
   AuthenticatedHubReviewRoute: AuthenticatedHubReviewRoute,
+  AuthenticatedHubSettingsRoute: AuthenticatedHubSettingsRoute,
   AuthenticatedHubUploadRoute: AuthenticatedHubUploadRoute,
   AuthenticatedHubLibraryMaterialIdRoute:
     AuthenticatedHubLibraryMaterialIdRoute,

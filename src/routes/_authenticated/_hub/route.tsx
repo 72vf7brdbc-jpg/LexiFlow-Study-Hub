@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/_hub")({
   pendingComponent: () => <LoadingScreen />,
   errorComponent: ({ error, reset }) => (
     <div className="px-5 py-20">
-      <InlineError message={error.message} onRetry={reset} />
+      <InlineError message={error instanceof Error ? error.message : undefined} onRetry={reset} />
     </div>
   ),
   component: HubLayout,

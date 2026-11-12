@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(profileQuery),
   pendingComponent: () => <LoadingScreen />,
-  errorComponent: ({ error, reset }) => <InlineError message={error.message} onRetry={reset} />,
+  errorComponent: ({ error, reset }) => <InlineError message={error instanceof Error ? error.message : undefined} onRetry={reset} />,
   component: Onboarding,
 });
 

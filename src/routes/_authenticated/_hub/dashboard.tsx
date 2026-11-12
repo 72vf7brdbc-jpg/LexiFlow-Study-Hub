@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/_hub/dashboard")({
       context.queryClient.ensureQueryData(materialsQuery),
     ]),
   pendingComponent: () => <LoadingScreen />,
-  errorComponent: ({ error, reset }) => <InlineError message={error.message} onRetry={reset} />,
+  errorComponent: ({ error, reset }) => <InlineError message={error instanceof Error ? error.message : undefined} onRetry={reset} />,
   component: Dashboard,
 });
 

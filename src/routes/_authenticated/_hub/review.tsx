@@ -32,12 +32,12 @@ import { speakEnglish } from "@/lib/speak";
 import { toLocalDateString, xpForAnswer } from "@/lib/streak";
 import { cn } from "@/lib/utils";
 
-type ReviewSearch = { mode?: "practice"; material?: string };
+type ReviewSearch = { mode?: "practice" | undefined; material?: string | undefined };
 
 export const Route = createFileRoute("/_authenticated/_hub/review")({
   validateSearch: (s: Record<string, unknown>): ReviewSearch => ({
-    mode: s.mode === "practice" ? "practice" : undefined,
-    material: typeof s.material === "string" && /^[0-9a-f-]{36}$/i.test(s.material) ? s.material : undefined,
+    mode: s["mode"] === "practice" ? "practice" : undefined,
+    material: typeof s["material"] === "string" && /^[0-9a-f-]{36}$/i.test(s["material"]) ? s["material"] : undefined,
   }),
   loaderDeps: ({ search }) => ({ mode: search.mode, material: search.material }),
   loader: async ({ context, deps }) => {
@@ -56,7 +56,7 @@ export const Route = createFileRoute("/_authenticated/_hub/review")({
     ],
   }),
   pendingComponent: () => <LoadingScreen label="Preparo la sessione…" />,
-  errorComponent: ({ error, reset }) => <InlineError message={error.message} onRetry={reset} />,
+  errorComponent: ({ error, reset }) => <InlineError message={error instanceof Error ? error.message : undefined} onRetry={reset} />,
   component: ReviewPage,
 });
 

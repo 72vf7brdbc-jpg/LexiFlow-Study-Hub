@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_authenticated/_hub/library/$materialId")
   }),
   loader: ({ context, params }) => context.queryClient.ensureQueryData(materialQuery(params.materialId)),
   pendingComponent: () => <LoadingScreen />,
-  errorComponent: ({ error, reset }) => <InlineError message={error.message} onRetry={reset} />,
+  errorComponent: ({ error, reset }) => <InlineError message={error instanceof Error ? error.message : undefined} onRetry={reset} />,
   component: MaterialPage,
 });
 

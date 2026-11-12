@@ -13,11 +13,11 @@ import { Label } from "@/components/ui/label";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 
-type AuthSearch = { redirect?: string };
+type AuthSearch = { redirect?: string | undefined };
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>): AuthSearch => ({
-    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+    redirect: typeof search["redirect"] === "string" ? search.redirect : undefined,
   }),
   head: () => ({
     meta: [
@@ -76,7 +76,7 @@ function AuthPage() {
   const goNext = () => {
     const stored = sessionStorage.getItem(RETURN_KEY);
     sessionStorage.removeItem(RETURN_KEY);
-    navigate({ to: safePath(search.redirect ?? stored), replace: true });
+    navigate({ to: safePath(search["redirect"] ?? stored), replace: true });
   };
 
   useEffect(() => {
