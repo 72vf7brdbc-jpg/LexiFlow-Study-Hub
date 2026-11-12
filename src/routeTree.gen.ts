@@ -19,6 +19,7 @@ import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedHubDashboardRouteImport } from './routes/_authenticated/_hub/dashboard'
 import { Route as AuthenticatedHubUploadRouteImport } from './routes/_authenticated/_hub/upload'
 import { Route as AuthenticatedHubLibraryIndexRouteImport } from './routes/_authenticated/_hub/library.index'
+import { Route as AuthenticatedHubLibraryMaterialIdRouteImport } from './routes/_authenticated/_hub/library.$materialId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +71,12 @@ const AuthenticatedHubLibraryIndexRoute =
     path: '/library/',
     getParentRoute: () => AuthenticatedHubRouteRoute,
   } as any)
+const AuthenticatedHubLibraryMaterialIdRoute =
+  AuthenticatedHubLibraryMaterialIdRouteImport.update({
+    id: '/library/$materialId',
+    path: '/library/$materialId',
+    getParentRoute: () => AuthenticatedHubRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/dashboard': typeof AuthenticatedHubDashboardRoute
   '/upload': typeof AuthenticatedHubUploadRoute
+  '/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
   '/library/': typeof AuthenticatedHubLibraryIndexRoute
 }
 export interface FileRoutesByTo {
@@ -89,6 +97,7 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/dashboard': typeof AuthenticatedHubDashboardRoute
   '/upload': typeof AuthenticatedHubUploadRoute
+  '/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
   '/library': typeof AuthenticatedHubLibraryIndexRoute
 }
 export interface FileRoutesById {
@@ -102,6 +111,7 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/_hub/dashboard': typeof AuthenticatedHubDashboardRoute
   '/_authenticated/_hub/upload': typeof AuthenticatedHubUploadRoute
+  '/_authenticated/_hub/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
   '/_authenticated/_hub/library/': typeof AuthenticatedHubLibraryIndexRoute
 }
 export interface FileRouteTypes {
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/dashboard'
     | '/upload'
+    | '/library/$materialId'
     | '/library/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/dashboard'
     | '/upload'
+    | '/library/$materialId'
     | '/library'
   id:
     | '__root__'
@@ -136,6 +148,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/_authenticated/_hub/dashboard'
     | '/_authenticated/_hub/upload'
+    | '/_authenticated/_hub/library/$materialId'
     | '/_authenticated/_hub/library/'
   fileRoutesById: FileRoutesById
 }
@@ -219,18 +232,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHubLibraryIndexRouteImport
       parentRoute: typeof AuthenticatedHubRouteRoute
     }
+    '/_authenticated/_hub/library/$materialId': {
+      id: '/_authenticated/_hub/library/$materialId'
+      path: '/library/$materialId'
+      fullPath: '/library/$materialId'
+      preLoaderRoute: typeof AuthenticatedHubLibraryMaterialIdRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
   }
 }
 
 interface AuthenticatedHubRouteRouteChildren {
   AuthenticatedHubDashboardRoute: typeof AuthenticatedHubDashboardRoute
   AuthenticatedHubUploadRoute: typeof AuthenticatedHubUploadRoute
+  AuthenticatedHubLibraryMaterialIdRoute: typeof AuthenticatedHubLibraryMaterialIdRoute
   AuthenticatedHubLibraryIndexRoute: typeof AuthenticatedHubLibraryIndexRoute
 }
 
 const AuthenticatedHubRouteRouteChildren: AuthenticatedHubRouteRouteChildren = {
   AuthenticatedHubDashboardRoute: AuthenticatedHubDashboardRoute,
   AuthenticatedHubUploadRoute: AuthenticatedHubUploadRoute,
+  AuthenticatedHubLibraryMaterialIdRoute:
+    AuthenticatedHubLibraryMaterialIdRoute,
   AuthenticatedHubLibraryIndexRoute: AuthenticatedHubLibraryIndexRoute,
 }
 
