@@ -20,8 +20,8 @@ export function maxGapDays(daysPerWeek: number): number {
 
 /** Whole days between two YYYY-MM-DD dates (b - a). */
 export function daysBetween(a: string, b: string): number {
-  const [ay, am, ad] = a.split("-").map(Number);
-  const [by, bm, bd] = b.split("-").map(Number);
+  const [ay = 0, am = 1, ad = 1] = a.split("-").map(Number);
+  const [by = 0, bm = 1, bd = 1] = b.split("-").map(Number);
   const ta = Date.UTC(ay, am - 1, ad);
   const tb = Date.UTC(by, bm - 1, bd);
   return Math.round((tb - ta) / 86_400_000);

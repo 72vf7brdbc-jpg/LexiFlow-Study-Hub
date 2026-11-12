@@ -7,10 +7,10 @@ import { goalName, languageName } from "../study-config";
 
 export type AnalysisInput = {
   sourceType: "photo" | "file" | "text";
-  text?: string | null;
-  base64?: string | null;
-  mimeType?: string | null;
-  fileName?: string | null;
+  text?: string | null | undefined;
+  base64?: string | null | undefined;
+  mimeType?: string | null | undefined;
+  fileName?: string | null | undefined;
 };
 
 export type LearnerProfile = {
@@ -39,7 +39,7 @@ const analysisSchema = z.object({
 
 export type MaterialAnalysis = z.infer<typeof analysisSchema>;
 
-const nullableString = { type: ["string", "null"] } as const;
+const nullableString: { type: ("string" | "null")[] } = { type: ["string", "null"] };
 
 const wireSchema = jsonSchema<MaterialAnalysis>({
   type: "object",
