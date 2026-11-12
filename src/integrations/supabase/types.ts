@@ -14,7 +14,205 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cards: {
+        Row: {
+          cloze: string | null
+          correct_count: number
+          created_at: string
+          definition: string | null
+          due_at: string
+          ease: number
+          example: string | null
+          id: string
+          incorrect_count: number
+          interval_days: number
+          kind: string
+          last_reviewed_at: string | null
+          material_id: string | null
+          meaning: string
+          phonetic: string | null
+          repetitions: number
+          term: string
+          user_id: string
+        }
+        Insert: {
+          cloze?: string | null
+          correct_count?: number
+          created_at?: string
+          definition?: string | null
+          due_at?: string
+          ease?: number
+          example?: string | null
+          id?: string
+          incorrect_count?: number
+          interval_days?: number
+          kind?: string
+          last_reviewed_at?: string | null
+          material_id?: string | null
+          meaning: string
+          phonetic?: string | null
+          repetitions?: number
+          term: string
+          user_id: string
+        }
+        Update: {
+          cloze?: string | null
+          correct_count?: number
+          created_at?: string
+          definition?: string | null
+          due_at?: string
+          ease?: number
+          example?: string | null
+          id?: string
+          incorrect_count?: number
+          interval_days?: number
+          kind?: string
+          last_reviewed_at?: string | null
+          material_id?: string | null
+          meaning?: string
+          phonetic?: string | null
+          repetitions?: number
+          term?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cards_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          card_count: number
+          created_at: string
+          extracted_text: string | null
+          file_name: string | null
+          id: string
+          source_type: string
+          summary: string | null
+          title: string
+          topic: string | null
+          user_id: string
+        }
+        Insert: {
+          card_count?: number
+          created_at?: string
+          extracted_text?: string | null
+          file_name?: string | null
+          id?: string
+          source_type: string
+          summary?: string | null
+          title: string
+          topic?: string | null
+          user_id: string
+        }
+        Update: {
+          card_count?: number
+          created_at?: string
+          extracted_text?: string | null
+          file_name?: string | null
+          id?: string
+          source_type?: string
+          summary?: string | null
+          title?: string
+          topic?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          cefr_level: string | null
+          created_at: string
+          days_per_week: number | null
+          display_name: string | null
+          goal: string | null
+          id: string
+          last_study_date: string | null
+          longest_streak: number
+          native_language: string | null
+          onboarded: boolean
+          streak: number
+          updated_at: string
+          xp: number
+        }
+        Insert: {
+          cefr_level?: string | null
+          created_at?: string
+          days_per_week?: number | null
+          display_name?: string | null
+          goal?: string | null
+          id: string
+          last_study_date?: string | null
+          longest_streak?: number
+          native_language?: string | null
+          onboarded?: boolean
+          streak?: number
+          updated_at?: string
+          xp?: number
+        }
+        Update: {
+          cefr_level?: string | null
+          created_at?: string
+          days_per_week?: number | null
+          display_name?: string | null
+          goal?: string | null
+          id?: string
+          last_study_date?: string | null
+          longest_streak?: number
+          native_language?: string | null
+          onboarded?: boolean
+          streak?: number
+          updated_at?: string
+          xp?: number
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          answer: string | null
+          card_id: string | null
+          correct: boolean
+          created_at: string
+          id: string
+          mode: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          answer?: string | null
+          card_id?: string | null
+          correct: boolean
+          created_at?: string
+          id?: string
+          mode?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          answer?: string | null
+          card_id?: string | null
+          correct?: boolean
+          created_at?: string
+          id?: string
+          mode?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
