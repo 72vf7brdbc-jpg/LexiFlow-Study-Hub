@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BookMarked, Camera, Flame, Mic, Sparkles, Repeat2, CalendarDays } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import heroImage from "@/assets/study-desk.jpg";
 import { Logo } from "@/components/lexi/logo";
 import { Stamp } from "@/components/lexi/ui-bits";
 import { Button } from "@/components/ui/button";
@@ -140,14 +139,30 @@ function Landing() {
           </div>
 
           <div className="relative animate-rise [animation-delay:120ms]">
-            <div className="paper overflow-hidden p-2 shadow-lift">
-              <img
-                src={heroImage}
-                alt="Scrivania vintage con libri rilegati, penna stilografica e schede di studio"
-                width={1280}
-                height={1024}
-                className="aspect-[5/4] w-full rounded-[calc(var(--radius-xl)-6px)] object-cover"
-              />
+            <div className="paper relative overflow-hidden p-7 shadow-lift sm:p-9">
+              <div className="pointer-events-none absolute -right-14 -top-14 size-44 rounded-full border border-border" />
+              <div className="pointer-events-none absolute -right-6 -top-6 size-28 rounded-full border border-border" />
+              <p className="eyebrow">Sessione di ripasso</p>
+              <p className="mt-4 font-display text-4xl italic leading-tight sm:text-5xl">inevitable</p>
+              <p className="mt-1 text-sm text-muted-foreground">/ɪnˈevɪtəbl/ · inevitabile</p>
+              <p className="mt-5 border-l-2 border-primary/40 pl-4 text-[15px] italic leading-relaxed text-muted-foreground">
+                “Change is inevitable, growth is optional.”
+              </p>
+              <div className="mt-7 grid grid-cols-2 gap-2.5">
+                <span className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-sm font-semibold">inevitabile</span>
+                <span className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-sm text-muted-foreground">evitabile</span>
+                <span className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-sm text-muted-foreground">improbabile</span>
+                <span className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-sm text-muted-foreground">necessario</span>
+              </div>
+              <div className="mt-7 flex items-center justify-between">
+                <span className="eyebrow">Scheda 4 di 15</span>
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-primary">
+                  <Sparkles className="size-4" /> +10 XP
+                </span>
+              </div>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                <div className="h-full w-1/4 rounded-full bg-primary" />
+              </div>
             </div>
             <div className="paper absolute -bottom-6 -left-3 w-[230px] rotate-[-2deg] p-4 shadow-lift sm:-left-8">
               <p className="eyebrow">Scheda · B2 · IELTS</p>
