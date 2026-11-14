@@ -8,6 +8,13 @@
       "when": 1794523979952,
       "tag": "0000_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794644339895,
+      "tag": "0001_allow_cefr_c1_c2",
+      "breakpoints": true
     }
   ]
 }
