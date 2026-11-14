@@ -4,7 +4,9 @@ export const CEFR_LEVELS = [
   { id: "A1", name: "Principiante", blurb: "Capisci e usi espressioni quotidiane molto semplici." },
   { id: "A2", name: "Elementare", blurb: "Comunichi in situazioni di routine e scambi brevi." },
   { id: "B1", name: "Intermedio", blurb: "Te la cavi in viaggio, al lavoro e su temi familiari." },
-  { id: "B2", name: "Intermedio superiore", blurb: "Interagisci con scioltezza e argomenti più complessi." },
+  { id: "B2", name: "Advanced", blurb: "Interagisci con scioltezza e argomenti più complessi." },
+  { id: "C1", name: "Avanzato", blurb: "Usi l'inglese con flessibilità e precisione in contesti sociali, accademici e professionali." },
+  { id: "C2", name: "Padronanza", blurb: "Comprendi praticamente tutto e ti esprimi con naturalezza, precisione e sfumature." },
 ] as const;
 export type CefrLevel = (typeof CEFR_LEVELS)[number]["id"];
 
