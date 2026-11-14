@@ -2,11 +2,21 @@ import { describe, expect, it } from "vitest";
 
 import { gradeAnswer } from "@/lib/grading";
 import { sessionSize } from "@/lib/plan";
+import { CEFR_LEVELS } from "@/lib/study-config";
 import { scheduleCard } from "@/lib/srs";
 import { displayedStreak, maxGapDays, nextStreak, xpForAnswer } from "@/lib/streak";
 
 const NOW = new Date("2026-11-12T10:00:00Z");
 const DAY = 86_400_000;
+
+describe("available study levels", () => {
+  it("includes C1 among selectable levels", () => {
+    expect(CEFR_LEVELS.some((level) => level.id === "C1")).toBe(true);
+  });
+  it("includes C2 among selectable levels", () => {
+    expect(CEFR_LEVELS.some((level) => level.id === "C2")).toBe(true);
+  });
+});
 
 describe("spaced repetition", () => {
   it("first correct answer schedules the card for tomorrow", () => {
