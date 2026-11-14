@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 import "@lovable.dev/cloud-auth-js/styles.css";
 
-import heroImage from "@/assets/study-desk.jpg";
 import { Logo } from "@/components/lexi/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -273,10 +272,15 @@ function AuthPage() {
         </div>
       </div>
 
-      <div className="relative hidden overflow-hidden border-l border-border lg:block">
-        <img src={heroImage} alt="" width={1280} height={1024} className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-x-10 bottom-10">
-          <blockquote className="paper max-w-md p-6 shadow-lift">
+      <div className="relative hidden overflow-hidden border-l border-border bg-paper lg:block">
+        <div className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full border border-border" />
+        <div className="pointer-events-none absolute -right-12 -top-12 size-64 rounded-full border border-border" />
+        <div className="pointer-events-none absolute -bottom-32 -left-20 size-80 rounded-full border border-border" />
+        <div className="relative flex h-full flex-col items-center justify-center px-12">
+          <p className="eyebrow">Parola del giorno</p>
+          <p className="mt-4 font-display text-6xl italic leading-none text-primary">serendipity</p>
+          <p className="mt-3 text-sm text-muted-foreground">/ˌserənˈdɪpəti/ · scoperta felice e inattesa</p>
+          <blockquote className="paper mt-12 max-w-md p-6 shadow-lift">
             <p className="font-display text-xl italic leading-snug">
               “Repetition is the mother of learning — but timing is its father.”
             </p>
