@@ -16,6 +16,11 @@ import {
   Trophy,
   Volume2,
   X,
+  Brain,
+  BookOpen,
+  MessageSquareText,
+  ShieldAlert,
+  Layers,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -48,7 +53,7 @@ export const Route = createFileRoute("/_authenticated/_hub/review")({
   head: () => ({
     meta: [
       { title: "Ripasso — LexiFlow Study Hub" },
-      { name: "description", content: "Sessione di ripasso con active recall e ripetizione spaziata." },
+      { name: "description", content: "Sessione di ripasso con metodologie C1 e ripetizione spaziata." },
       { property: "og:title", content: "Ripasso — LexiFlow" },
       { property: "og:description", content: "Rispondi scrivendo o a voce e guadagna XP." },
       { property: "og:type", content: "website" },
@@ -86,6 +91,29 @@ function sessionQuery(mode: ReviewSearch["mode"], material: string | undefined, 
   });
 }
 
+// Le 10 Metodologie di Studio C1 suddivise in 4 Categorie
+export const STUDY_METHODOLOGIES = [
+  // 1. Memorizzazione
+  { id: "active_recall", category: "Memorizzazione", name: "Active Recall", desc: "Richiama le informazioni dalla memoria senza consultare gli appunti." },
+  { id: "spaced_repetition", category: "Memorizzazione", name: "Spaced Repetition", desc: "Ripassa le parole a intervalli di tempo progressivamente più lunghi." },
+  { id: "retrieval_practice", category: "Memorizzazione", name: "Retrieval Practice", desc: "Verifica quanto ricordi attraverso prove senza rileggere preventivamente." },
+  
+  // 2. Vocabolario
+  { id: "collocations", category: "Vocabolario", name: "Collocations Training", desc: "Impara le combinazioni naturali di parole anziché studiare vocaboli isolati." },
+  { id: "contextual_learning", category: "Vocabolario", name: "Contextual Learning", desc: "Comprendi il significato e il registro linguistico attraverso contesti reali." },
+  { id: "translation_practice", category: "Vocabolario", name: "Translation Practice", desc: "Allena la traduzione attiva evitando calchi o traduzioni letterali." },
+
+  // 3. Produzione
+  { id: "sentence_creation", category: "Produzione", name: "Sentence Creation", desc: "Crea frasi originali in contesti differenti verificando grammatica e naturalezza." },
+  { id: "speaking_challenge", category: "Produzione", name: "Speaking Challenge", desc: "Usa le parole chiave per esprimerti spontaneamente a voce per 1-2 minuti." },
+  { id: "synonyms_paraphrasing", category: "Produzione", name: "Synonyms & Paraphrasing", desc: "Esprimi lo stesso concetto in modi differenti usando sinonimi e parafrasi." },
+
+  // 4. Consolidamento
+  { id: "error_based", category: "Consolidamento", name: "Error-Based Learning", desc: "Concentrati sugli elementi che sbagli più frequentemente per superarli." },
+] as const;
+
+type MethodologyId = typeof STUDY_METHODOLOGIES[number]["id"];
+
 type QueueItem = { card: Card; attempt: number };
 type Feedback = GradeResult & { answer: string; mode: "typed" | "voice"; overridden?: boolean };
 
@@ -99,6 +127,8 @@ function ReviewPage() {
   const { data: profile } = useSuspenseQuery(profileQuery);
   const size = sessionSize(profile.cefr_level, profile.days_per_week);
   const { data: cards } = useSuspenseQuery(sessionQuery(search.mode, search.material, size));
+
+  const [selectedMethodology, setSelectedMethodology] = useState<MethodologyId | null>(null);
 
   if (cards.length === 0) {
     return (
@@ -125,10 +155,58 @@ function ReviewPage() {
       </div>
     );
   }
-  return <Session key={`${search.mode}-${search.material}`} cards={cards} />;
+
+  // Schermata di selezione della Metodologia C1 prima di iniziare il ripasso
+  if (!selectedMethodology) {
+    const categories = ["Memorizzazione", "Vocabolario", "Produzione", "Consolidamento"] as const;
+
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 animate-rise">
+        <header className="space-y-2">
+          <p className="eyebrow text-primary">Modalità di studio C1</p>
+          <h1 className="text-[2rem] font-medium leading-tight">Come vuoi ripassare oggi?</h1>
+          <p className="text-sm text-muted-foreground">
+            Scegli una metodologia mirata per potenziare il tuo apprendimento attivo e la padronanza della lingua.
+          </p>
+        </header>
+
+        <div className="space-y-6">
+          {categories.map((cat) => {
+            const methods = STUDY_METHODOLOGIES.filter((m) => m.category === cat);
+            return (
+              <div key={cat} className="space-y-3">
+                <h3 className="font-display text-lg font-medium text-foreground flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-primary" /> {cat}
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                  {methods.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setSelectedMethodology(m.id)}
+                      className="paper text-left p-4 transition-all duration-200 hover:border-primary hover:shadow-soft flex flex-col justify-between group"
+                    >
+                      <div>
+                        <p className="font-semibold text-sm group-hover:text-primary transition-colors">{m.name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{m.desc}</p>
+                      </div>
+                      <div className="mt-4 flex items-center text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                        Seleziona <ArrowRight className="size-3 ml-1" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return <Session key={`${search.mode}-${search.material}-${selectedMethodology}`} cards={cards} methodology={selectedMethodology} onBack={() => setSelectedMethodology(null)} />;
 }
 
-function Session({ cards }: { cards: Card[] }) {
+function Session({ cards, methodology, onBack }: { cards: Card[]; methodology: MethodologyId; onBack: () => void }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const record = useServerFn(recordReview);
@@ -149,6 +227,7 @@ function Session({ cards }: { cards: Card[] }) {
   const total = cards.length;
   const finished = !current;
   const type = current ? exerciseType(current) : "recall";
+  const currentMethodObj = STUDY_METHODOLOGIES.find((m) => m.id === methodology);
 
   useEffect(() => {
     if (!feedback) inputRef.current?.focus();
@@ -188,7 +267,6 @@ function Session({ cards }: { cards: Card[] }) {
     const correct = feedback.correct;
     const mode = feedback.mode;
 
-    // Persist the answer (spaced repetition + XP + streak) in the background.
     record({ data: { cardId: card.id, correct, mode, answer: feedback.answer, localDate: toLocalDateString() } })
       .then((res) => {
         if (res.ok) setStreak(res.streak);
@@ -234,7 +312,7 @@ function Session({ cards }: { cards: Card[] }) {
           <div className="animate-pop mx-auto flex size-16 items-center justify-center rounded-full bg-gold/25 text-accent-foreground">
             <Trophy className="size-7" />
           </div>
-          <p className="eyebrow mt-5">Sessione completata</p>
+          <p className="eyebrow mt-5">Sessione completata ({currentMethodObj?.name})</p>
           <h1 className="mt-2 text-[2.2rem] font-medium leading-tight">
             {accuracy >= 0.85 ? "Splendido lavoro!" : accuracy >= 0.6 ? "Ottimi progressi." : "Ogni errore è un passo avanti."}
           </h1>
@@ -253,15 +331,14 @@ function Session({ cards }: { cards: Card[] }) {
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-xs text-muted-foreground">Torneranno nel ripasso tra pochi minuti, poi a intervalli più lunghi.</p>
             </div>
           )}
           <div className="mt-8 flex flex-col justify-center gap-2.5 sm:flex-row">
             <Button size="lg" onClick={() => navigate({ to: "/dashboard" })}>
               Torna a Oggi <ArrowRight />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate({ to: "/review", search: { mode: "practice" } })}>
-              <RotateCcw /> Allenamento extra
+            <Button size="lg" variant="outline" onClick={onBack}>
+              <RotateCcw /> Cambia metodologia
             </Button>
           </div>
         </div>
@@ -276,9 +353,9 @@ function Session({ cards }: { cards: Card[] }) {
   return (
     <div className="mx-auto flex max-w-2xl flex-col">
       <div className="flex items-center gap-4">
-        <Link to="/dashboard" className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="Chiudi sessione">
+        <button onClick={onBack} className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground" title="Cambia metodologia">
           <X className="size-5" />
-        </Link>
+        </button>
         <div className="h-3 flex-1 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
           <div className="h-full rounded-full bg-primary transition-all duration-500 ease-out" style={{ width: `${Math.max(4, progress * 100)}%` }} />
         </div>
@@ -287,7 +364,12 @@ function Session({ cards }: { cards: Card[] }) {
         </span>
       </div>
 
-      <div key={`${c.id}-${current.attempt}`} className="animate-rise mt-8">
+      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+        <span>Metodo: <strong className="text-primary">{currentMethodObj?.name}</strong></span>
+        <span>{currentMethodObj?.category}</span>
+      </div>
+
+      <div key={`${c.id}-${current.attempt}`} className="animate-rise mt-6">
         <div className="flex items-center justify-between">
           <p className="eyebrow">{type === "cloze" ? "Completa la frase" : "Come si dice in inglese?"}</p>
           <div className="flex items-center gap-2">
@@ -489,4 +571,3 @@ function SummaryStat({ icon, value, label }: { icon: React.ReactNode; value: str
     </div>
   );
 }
-
