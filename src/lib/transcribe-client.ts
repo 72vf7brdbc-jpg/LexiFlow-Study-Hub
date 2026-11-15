@@ -26,19 +26,21 @@ export async function transcribeRecording(file: File, signal?: AbortSignal): Pro
   let finalText: string | null = null;
   let streamError: string | null = null;
 
-  // CORRETTO: Passiamo direttamente la funzione callback a createParser
-  const parser = createParser((event) => {
-    if (event.type === "event") {
-      if (!event.data || event.data === "[DONE]") return;
-      try {
-        const payload = JSON.parse(event.data) as { type?: string; delta?: string; text?: string; error?: { message?: string } };
-        if (payload.type === "transcript.text.delta" && payload.delta) text += payload.delta;
-        else if (payload.type === "transcript.text.done" && typeof payload.text === "string") finalText = payload.text;
-        else if (payload.error) streamError = payload.error.message ?? "Errore di trascrizione";
-      } catch {
-        /* ignore keep-alive frames */
+  // CORRETTO: Passiamo la callback dentro l'oggetto di configurazione con onEvent
+  const parser = createParser({
+    onEvent: (event) => {
+      if (event.type === "event") {
+        if (!event.data || event.data === "[DONE]") return;
+        try {
+          const payload = JSON.parse(event.data) as { type?: string; delta?: string; text?: string; error?: { message?: string } };
+          if (payload.type === "transcript.text.delta" && payload.delta) text += payload.delta;
+          else if (payload.type === "transcript.text.done" && typeof payload.text === "string") finalText = payload.text;
+          else if (payload.error) streamError = payload.error.message ?? "Errore di trascrizione";
+        } catch {
+          /* ignore keep-alive frames */
+        }
       }
-    }
+    },
   });
 
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
