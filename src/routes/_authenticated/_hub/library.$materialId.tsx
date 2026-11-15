@@ -2,7 +2,7 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { it } from "date-fns/locale";
-import { ArrowLeft, Check, Layers, Trash2, Volume2, X, Calendar, Edit3, Save, ClipboardList, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Layers, Trash2, Volume2, X, Calendar, Edit3, Save, ClipboardList, Plus, Loader2, FileText, ImageIcon, CheckCircle2, Circle } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -58,21 +58,22 @@ const KIND_LABEL: Record<string, string> = { vocabulary: "Vocabolo", grammar: "G
 function MaterialPage() {
   const { materialId } = Route.useParams();
   const { data } = useSuspenseQuery(materialQuery(materialId));
-  const [tab, setTab] = useState<"cards" | "text">("cards");
+  const [tab, setTab] = useState<"cards" | "files" | "text">("cards");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const m = data.material;
+  const tasks = (data as any).tasks || [];
   
   // Stato per la modifica della data
   const [isEditingDate, setIsEditingDate] = useState(false);
   const [newDate, setNewDate] = useState(m ? m.created_at.slice(0, 16) : "");
   const [savingDate, setSavingDate] = useState(false);
 
-  // Stato per la modifica dei compiti in un secondo momento
-  const [isEditingHomework, setIsEditingHomework] = useState(false);
-  const [homeworkText, setHomeworkText] = useState((m as any).homework ?? "");
-  const [savingHomework, setSavingHomework] = useState(false);
+  // Stato per l'aggiunta di nuovi compiti sulla tabella relazionale tasks
+  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [savingTask, setSavingTask] = useState(false);
 
   // Stato per l'aggiunta di nuovi file/foto in un secondo momento
   const [addingFiles, setAddingFiles] = useState(false);
@@ -109,22 +110,49 @@ function MaterialPage() {
     toast.success("Data della lezione aggiornata");
   }
 
-  async function handleSaveHomework() {
-    setSavingHomework(true);
-    const { error } = await supabase
-      .from("materials")
-      .update({ homework: homeworkText.trim() || null })
-      .eq("id", m.id);
-    
-    setSavingHomework(false);
+  async function handleCreateTask() {
+    if (!newTaskTitle.trim()) return;
+    setSavingTask(true);
+    const { error } = await supabase.from("tasks").insert({
+      material_id: m.id,
+      title: newTaskTitle.trim(),
+      status: "todo",
+    });
+
+    setSavingTask(false);
     if (error) {
-      toast.error("Impossibile aggiornare i compiti");
+      toast.error("Impossibile salvare il compito");
       return;
     }
-    setIsEditingHomework(false);
+    setNewTaskTitle("");
+    setIsAddingTask(false);
     await queryClient.invalidateQueries({ queryKey: ["material", m.id] });
-    await queryClient.invalidateQueries({ queryKey: ["materials"] });
-    toast.success("Compiti aggiornati");
+    toast.success("Compito aggiunto con successo");
+  }
+
+  async function handleToggleTaskStatus(taskId: string, currentStatus: string) {
+    const nextStatus = currentStatus === "completed" ? "todo" : "completed";
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: nextStatus })
+      .eq("id", taskId);
+
+    if (error) {
+      toast.error("Impossibile aggiornare lo stato del compito");
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["material", m.id] });
+    toast.success(nextStatus === "completed" ? "Compito completato!" : "Compito riaperto");
+  }
+
+  async function handleDeleteTask(taskId: string) {
+    const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+    if (error) {
+      toast.error("Impossibile eliminare il compito");
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["material", m.id] });
+    toast.success("Compito eliminato");
   }
 
   // Funzione per gestire l'aggiunta di nuovi allegati/foto in un secondo momento
@@ -136,7 +164,7 @@ function MaterialPage() {
       for (const file of Array.from(fileList)) {
         const prepared = await prepareUpload(file);
         if (prepared.kind === "text") {
-          extraTexts.push(`\n\n--- [Allegato successivo: ${file.name}] ---\n${prepared.text}`);
+          extraTexts.push(`\n\n--- [Allegato: ${file.name}] ---\n${prepared.text}`);
         }
       }
 
@@ -174,6 +202,15 @@ function MaterialPage() {
     toast.success("Lezione eliminata");
     navigate({ to: "/library", replace: true });
   }
+
+  // Estrae i nomi degli allegati direttamente dal testo memorizzato
+  const extractedFiles = (m.extracted_text || "")
+    .split("---")
+    .filter(chunk => chunk.includes("Allegato:"))
+    .map(chunk => {
+      const match = chunk.match(/Allegato:\s*([^\]]+)/);
+      return match ? match[1].trim() : "Documento allegato";
+    });
 
   return (
     <div className="space-y-8">
@@ -231,47 +268,75 @@ function MaterialPage() {
           <h1 className="mt-3 text-[2rem] font-medium leading-[1.08] sm:text-[2.5rem]">{m.title}</h1>
           {m.summary && <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{m.summary}</p>}
           
-          {/* Box per i compiti manuali (Aggiungibile o Modificabile in qualsiasi momento) */}
-          <div className="mt-4 rounded-xl border border-primary/25 bg-primary/5 p-4">
-            <div className="flex items-center justify-between mb-1">
+          {/* Box per i compiti collegati alla tabella relazionale tasks */}
+          <div className="mt-4 rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <ClipboardList className="size-4 text-primary" />
-                <p className="eyebrow text-primary font-semibold">Compiti assegnati</p>
+                <p className="eyebrow text-primary font-semibold">Compiti assegnati ({tasks.length})</p>
               </div>
-              {!isEditingHomework && (
+              {!isAddingTask && (
                 <button
-                  onClick={() => {
-                    setHomeworkText((m as any).homework ?? "");
-                    setIsEditingHomework(true);
-                  }}
+                  onClick={() => setIsAddingTask(true)}
                   className="text-xs text-primary hover:underline inline-flex items-center gap-1 font-medium"
                 >
-                  <Edit3 className="size-3" /> {(m as any).homework ? "Modifica compiti" : "Aggiungi compiti"}
+                  <Plus className="size-3.5" /> Aggiungi compito
                 </button>
               )}
             </div>
 
-            {isEditingHomework ? (
+            {isAddingTask && (
               <div className="space-y-2 mt-2">
-                <Textarea
-                  value={homeworkText}
-                  onChange={(e) => setHomeworkText(e.target.value.slice(0, 1000))}
-                  placeholder="Scrivi qui i compiti o gli esercizi assegnati per la prossima lezione..."
-                  className="h-20 text-sm bg-background"
+                <Input
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  placeholder="Es. Esercizio a pagina 10, studiare grammatica..."
+                  className="text-sm bg-background"
                 />
                 <div className="flex items-center gap-2">
-                  <Button size="sm" onClick={handleSaveHomework} disabled={savingHomework} className="h-8 px-3">
-                    <Save className="size-3.5 mr-1" /> Salva compiti
+                  <Button size="sm" onClick={handleCreateTask} disabled={savingTask} className="h-8 px-3">
+                    <Save className="size-3.5 mr-1" /> Salva compito
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setIsEditingHomework(false)} className="h-8 px-2">
+                  <Button size="sm" variant="ghost" onClick={() => setIsAddingTask(false)} className="h-8 px-2">
                     Annulla
                   </Button>
                 </div>
               </div>
+            )}
+
+            {tasks.length > 0 ? (
+              <ul className="space-y-2 mt-2">
+                {tasks.map((task: any) => {
+                  const isCompleted = task.status === "completed";
+                  return (
+                    <li key={task.id} className="flex items-center justify-between gap-3 rounded-lg bg-background/80 border border-border p-2.5 text-sm">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <button
+                          onClick={() => handleToggleTaskStatus(task.id, task.status)}
+                          className={cn("shrink-0 transition-colors", isCompleted ? "text-green-600" : "text-muted-foreground hover:text-primary")}
+                          aria-label={isCompleted ? "Segna da fare" : "Segna come completato"}
+                        >
+                          {isCompleted ? <CheckCircle2 className="size-4 fill-green-100" /> : <Circle className="size-4" />}
+                        </button>
+                        <span className={cn("truncate font-medium", isCompleted && "line-through text-muted-foreground")}>
+                          {task.title}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteTask(task.id)}
+                        className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors"
+                        title="Elimina compito"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             ) : (
-              <p className="text-sm text-foreground whitespace-pre-wrap mt-1">
-                {(m as any).homework || <span className="text-muted-foreground italic">Nessun compito assegnato inserito. Clicca su "Aggiungi compiti" per scriverli quando vuoi.</span>}
-              </p>
+              !isAddingTask && (
+                <p className="text-sm text-muted-foreground italic">Nessun compito assegnato. Clicca su "Aggiungi compito" per inserirlo.</p>
+              )
             )}
           </div>
         </div>
@@ -317,10 +382,12 @@ function MaterialPage() {
         </div>
       </header>
 
+      {/* Tab di navigazione: Schede, File e Allegati, Testo estratto */}
       <div className="flex gap-1 border-b border-border">
         {[
           { id: "cards" as const, label: `Schede (${data.cards.length})` },
-          { id: "text" as const, label: "Testo estratto e allegati" },
+          { id: "files" as const, label: "File e Allegati" },
+          { id: "text" as const, label: "Testo estratto" },
         ].map((t) => (
           <button
             key={t.id}
@@ -335,14 +402,56 @@ function MaterialPage() {
         ))}
       </div>
 
-      {tab === "cards" ? (
+      {tab === "cards" && (
         <ul className="grid gap-4 md:grid-cols-2">
           {data.cards.map((c, i) => (
             <CardItem key={c.id} card={c} index={i} />
           ))}
         </ul>
-      ) : (
-        <div className="paper lined whitespace-pre-wrap px-6 py-2 text-[15px] leading-8">
+      )}
+
+      {tab === "files" && (
+        <div className="space-y-4">
+          <div className="paper p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display text-lg font-medium">File e documenti associati</h3>
+                <p className="text-xs text-muted-foreground">Ecco l'elenco dei file, delle foto e dei documenti associati a questa sessione.</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => addFileRef.current?.click()}>
+                <Plus className="size-4 mr-1" /> Aggiungi file
+              </Button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 pt-2">
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                  <FileText className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm truncate">{m.title || "Lezione principale"}</p>
+                  <p className="text-[11px] text-muted-foreground">Origine ({m.source_type})</p>
+                </div>
+              </div>
+
+              {extractedFiles.map((fileName, idx) => (
+                <div key={idx} className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                    <ImageIcon className="size-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm truncate">{fileName}</p>
+                    <p className="text-[11px] text-muted-foreground">Allegato extra</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "text" && (
+        <div className="paper lined whitespace-pre-wrap px-6 py-4 text-[15px] leading-8">
           {m.extracted_text || "Nessun testo estratto disponibile."}
         </div>
       )}
