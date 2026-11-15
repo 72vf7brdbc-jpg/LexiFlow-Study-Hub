@@ -1,7 +1,7 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowRight, Camera, Check, FileText, FileUp, ImageIcon, Loader2, PenLine, RotateCcw, Sparkles, X, BookOpen, ClipboardList } from "lucide-react";
+import { ArrowRight, Camera, Check, FileText, FileUp, ImageIcon, Loader2, PenLine, RotateCcw, Sparkles, X, BookOpen, ClipboardList, Plus } from "lucide-react";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { toast } from "sonner";
 
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/_hub/upload")({
   head: () => ({
     meta: [
       { title: "Carica una lezione — LexiFlow" },
-      { name: "description", content: "Carica foto, file o testo: l'AI crea le tue schede di studio o archivia il registro." },
+      { name: "description", content: "Carica foto, file multipli o testo: l'AI crea le tue schede di studio o archivia il registro." },
       { property: "og:title", content: "Carica una lezione — LexiFlow" },
       { property: "og:description", content: "Da dispense e appunti a schede di vocabolario, in un attimo." },
       { property: "og:type", content: "website" },
@@ -42,7 +42,7 @@ const MODES = [
   { id: "text" as const, label: "Testo", hint: "Scrivi o incolla", icon: PenLine },
 ];
 
-const PHASES = ["Leggo il materiale", "Estraggo il vocabolario chiave", "Calibro le schede sul tuo livello", "Salvo nel tuo archivio"];
+const PHASES = ["Leggo i materiali", "Estraggo il vocabolario chiave", "Calibro le schede sul tuo livello", "Salvo nel tuo archivio"];
 
 type Done = { materialId: string; title: string; cardCount: number; saveOnly: boolean };
 
@@ -56,17 +56,18 @@ function UploadPage() {
   const mode: Mode = search.mode ?? "photo";
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
-  const [homework, setHomework] = useState(""); // Stato per i compiti manuali
-  const [prepared, setPrepared] = useState<PreparedUpload | null>(null);
-  const [fileMeta, setFileMeta] = useState<{ name: string; size: number } | null>(null);
+  const [homework, setHomework] = useState("");
+  
+  // Gestione di file e foto multiple
+  const [preparedList, setPreparedList] = useState<PreparedUpload[]>([]);
+  const [fileMetas, setFileMetas] = useState<{ name: string; size: number }[]>([]);
+
   const [preparing, setPreparing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Done | null>(null);
   const [dragging, setDragging] = useState(false);
-  
-  // Nuovo stato per l'opzione "Solo registro"
   const [saveOnly, setSaveOnly] = useState(false);
 
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -82,56 +83,72 @@ function UploadPage() {
 
   function setMode(m: Mode) {
     setError(null);
-    setPrepared(null);
-    setFileMeta(null);
+    setPreparedList([]);
+    setFileMetas([]);
     navigate({ to: "/upload", search: { mode: m }, replace: true });
   }
 
-  async function handleFile(file: File | undefined | null) {
-    if (!file) return;
+  async function handleFiles(fileList: FileList | File[] | null | undefined) {
+    if (!fileList || fileList.length === 0) return;
     setError(null);
     setPreparing(true);
     try {
-      const p = await prepareUpload(file);
-      setPrepared(p);
-      setFileMeta({ name: file.name, size: file.size });
-      if (!title) setTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").slice(0, 80));
+      const newPrepared: PreparedUpload[] = [];
+      const newMetas: { name: string; size: number }[] = [];
+
+      for (const file of Array.from(fileList)) {
+        const p = await prepareUpload(file);
+        newPrepared.push(p);
+        newMetas.push({ name: file.name, size: file.size });
+      }
+
+      setPreparedList((prev) => [...prev, ...newPrepared]);
+      setFileMetas((prev) => [...prev, ...newMetas]);
+
+      if (!title && fileList[0]) {
+        setTitle(fileList[0].name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").slice(0, 80));
+      }
     } catch (e) {
-      setPrepared(null);
-      setFileMeta(null);
-      setError(e instanceof Error ? e.message : "File non valido");
+      setError(e instanceof Error ? e.message : "Errore nel caricamento dei file");
     } finally {
       setPreparing(false);
     }
   }
 
+  function removeFile(index: number) {
+    setPreparedList((prev) => prev.filter((_, i) => i !== index));
+    setFileMetas((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function onDrop(e: DragEvent) {
     e.preventDefault();
     setDragging(false);
-    handleFile(e.dataTransfer.files?.[0]);
+    handleFiles(e.dataTransfer.files);
   }
 
-  const canSubmit = mode === "text" ? text.trim().length >= 20 : !!prepared;
+  const canSubmit = mode === "text" ? text.trim().length >= 20 : preparedList.length > 0;
 
   async function submit() {
     if (!canSubmit || busy) return;
     setError(null);
     setBusy(true);
     try {
+      const primary = preparedList[0];
       const payload = {
         ...(mode === "text"
           ? { sourceType: "text" as const, title: title || null, text }
-          : prepared?.kind === "text"
-            ? { sourceType: mode, title: title || null, text: prepared.text, fileName: prepared.fileName }
+          : primary?.kind === "text"
+            ? { sourceType: mode, title: title || null, text: primary.text, fileName: primary.fileName }
             : {
                 sourceType: mode,
                 title: title || null,
-                base64: prepared!.kind === "binary" ? prepared!.base64 : null,
-                mimeType: prepared!.kind === "binary" ? prepared!.mimeType : null,
-                fileName: prepared!.fileName,
+                base64: primary && primary.kind === "binary" ? primary.base64 : null,
+                mimeType: primary && primary.kind === "binary" ? primary.mimeType : null,
+                fileName: primary ? primary.fileName : "file",
               }),
         saveOnly,
-        homework: homework.trim() || null, // Inviamo anche i compiti manuali
+        homework: homework.trim() || null,
+        additionalFiles: preparedList.slice(1),
       };
 
       const res = await analyze({ data: payload });
@@ -153,8 +170,8 @@ function UploadPage() {
 
   function reset() {
     setDone(null);
-    setPrepared(null);
-    setFileMeta(null);
+    setPreparedList([]);
+    setFileMetas([]);
     setText("");
     setTitle("");
     setHomework("");
@@ -209,10 +226,10 @@ function UploadPage() {
         eyebrow="Nuova lezione"
         title={
           <>
-            Carica, e lascia fare <span className="italic text-primary">all'AI</span>.
+            Carica foto o file multipli, e fai fare <span className="italic text-primary">all'AI</span>.
           </>
         }
-        description="Scegli come caricare il materiale ricevuto a lezione. Estrarremo il vocabolario chiave e creeremo le schede."
+        description="Seleziona una o più foto, PDF o documenti insieme. Estrarremo il vocabolario e creeremo le tue schede."
       />
 
       <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-secondary/60 p-1.5" role="tablist">
@@ -239,34 +256,54 @@ function UploadPage() {
 
       <div key={mode} className="animate-rise space-y-5">
         {mode === "photo" && (
-          <div className="paper p-5 sm:p-6">
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }} />
-            <input ref={galleryRef} type="file" accept="image/*" className="sr-only" onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }} />
-            {prepared?.kind === "binary" && prepared.previewUrl ? (
-              <div className="relative overflow-hidden rounded-xl border border-border bg-background">
-                <img src={prepared.previewUrl} alt="Anteprima della foto caricata" className="max-h-[420px] w-full object-contain" />
+          <div className="paper p-5 sm:p-6 space-y-4">
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} />
+            <input ref={galleryRef} type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} />
+
+            {preparedList.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {preparedList.map((p, idx) => (
+                  <div key={idx} className="relative overflow-hidden rounded-xl border border-border bg-background aspect-square flex items-center justify-center">
+                    {p.kind === "binary" && p.previewUrl ? (
+                      <img src={p.previewUrl} alt={`Foto ${idx + 1}`} className="size-full object-cover" />
+                    ) : (
+                      <FileText className="size-8 text-primary" />
+                    )}
+                    <button
+                      onClick={() => removeFile(idx)}
+                      className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-paper/95 shadow-soft transition-transform hover:scale-105"
+                      aria-label="Rimuovi foto"
+                      disabled={busy}
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
                 <button
-                  onClick={() => { setPrepared(null); setFileMeta(null); }}
-                  className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-paper/95 shadow-soft transition-transform hover:scale-105"
-                  aria-label="Rimuovi foto"
-                  disabled={busy}
+                  type="button"
+                  onClick={() => galleryRef.current?.click()}
+                  disabled={preparing || busy}
+                  className="rounded-xl border border-dashed border-input bg-background flex flex-col items-center justify-center aspect-square text-muted-foreground hover:border-primary hover:text-primary transition-colors"
                 >
-                  <X className="size-4" />
+                  <Plus className="size-6 mb-1" />
+                  <span className="text-xs font-medium">Aggiungi altre</span>
                 </button>
               </div>
-            ) : (
+            )}
+
+            {preparedList.length === 0 && (
               <div className="lined flex flex-col items-center rounded-xl border border-dashed border-input px-4 py-12 text-center">
                 <div className="flex size-14 items-center justify-center rounded-full bg-secondary text-primary">
                   {preparing ? <Loader2 className="size-6 animate-spin" /> : <Camera className="size-6" />}
                 </div>
-                <p className="mt-4 font-display text-xl font-medium">Fotografa la dispensa o la lavagna</p>
-                <p className="mt-1 max-w-sm text-sm text-muted-foreground">Inquadra bene il testo, con buona luce. Anche la scrittura a mano va bene.</p>
+                <p className="mt-4 font-display text-xl font-medium">Fotografa o seleziona più foto</p>
+                <p className="mt-1 max-w-sm text-sm text-muted-foreground">Puoi selezionare più immagini contemporaneamente dalla galleria.</p>
                 <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
                   <Button size="lg" onClick={() => cameraRef.current?.click()} disabled={preparing}>
-                    <Camera /> Scatta una foto
+                    <Camera /> Scatta foto
                   </Button>
                   <Button size="lg" variant="outline" onClick={() => galleryRef.current?.click()} disabled={preparing}>
-                    <ImageIcon /> Dalla galleria
+                    <ImageIcon /> Dalla galleria (multiplo)
                   </Button>
                 </div>
               </div>
@@ -275,32 +312,39 @@ function UploadPage() {
         )}
 
         {mode === "file" && (
-          <div className="paper p-5 sm:p-6">
+          <div className="paper p-5 sm:p-6 space-y-4">
             <input
               ref={fileRef}
               type="file"
               accept="application/pdf,image/*,.txt,.md,.markdown,.csv,text/plain"
+              multiple
               className="sr-only"
-              onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }}
+              onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
             />
-            {fileMeta && prepared ? (
-              <div className="flex items-center gap-4 rounded-xl border border-border bg-background p-4">
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
-                  {prepared.kind === "binary" && prepared.previewUrl ? (
-                    <img src={prepared.previewUrl} alt="" className="size-12 rounded-lg object-cover" />
-                  ) : (
-                    <FileText className="size-5" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{fileMeta.name}</p>
-                  <p className="eyebrow text-[10px]">{formatBytes(fileMeta.size)} · pronto</p>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => { setPrepared(null); setFileMeta(null); }} aria-label="Rimuovi file" disabled={busy}>
-                  <X />
+
+            {fileMetas.length > 0 && (
+              <div className="space-y-2">
+                {fileMetas.map((meta, idx) => (
+                  <div key={idx} className="flex items-center gap-4 rounded-xl border border-border bg-background p-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                      <FileText className="size-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-sm">{meta.name}</p>
+                      <p className="eyebrow text-[10px]">{formatBytes(meta.size)} · pronto</p>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => removeFile(idx)} aria-label="Rimuovi file" disabled={busy}>
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={preparing || busy} className="w-full">
+                  <Plus className="size-4 mr-2" /> Aggiungi altri file o PDF
                 </Button>
               </div>
-            ) : (
+            )}
+
+            {fileMetas.length === 0 && (
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
@@ -315,8 +359,8 @@ function UploadPage() {
                 <div className="flex size-14 items-center justify-center rounded-full bg-secondary text-primary">
                   {preparing ? <Loader2 className="size-6 animate-spin" /> : <FileUp className="size-6" />}
                 </div>
-                <p className="mt-4 font-display text-xl font-medium">Trascina qui il file</p>
-                <p className="mt-1 text-sm text-muted-foreground">oppure tocca per sceglierlo · PDF, JPG, PNG, TXT fino a 10 MB</p>
+                <p className="mt-4 font-display text-xl font-medium">Trascina qui i tuoi file</p>
+                <p className="mt-1 text-sm text-muted-foreground">oppure seleziona più PDF, immagini o documenti insieme</p>
               </button>
             )}
           </div>
