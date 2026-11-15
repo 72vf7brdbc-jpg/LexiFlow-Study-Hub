@@ -35,8 +35,7 @@ export function scheduleCard(state: SrsState, correct: boolean, now: Date = new 
   const repetitions = state.repetitions + 1;
   const ease = Math.min(MAX_EASE, round(state.ease + 0.1));
   const ladder = INTERVAL_LADDER[repetitions - 1];
-  const interval =
-    ladder ?? Math.min(MAX_INTERVAL_DAYS, round(Math.max(state.interval_days, INTERVAL_LADDER[INTERVAL_LADDER.length - 1]) * ease));
+  const interval = ladder ?? Math.min(MAX_INTERVAL_DAYS, round(Math.max(state.interval_days, 30) * ease));
 
   return {
     repetitions,
@@ -65,6 +64,15 @@ export function applyManualStatus(status: LearningStatus, now: Date = new Date()
   if (status === "learning") return { repetitions: 0, interval_days: 0, due_at: now };
   if (status === "consolidating") return { repetitions: 2, interval_days: 3, due_at: new Date(now.getTime() + 3 * DAY_MS) };
   return { repetitions: 5, interval_days: 30, due_at: new Date(now.getTime() + 30 * DAY_MS) };
+}
+
+export type MasteryLevel = "new" | "learning" | "review" | "mastered";
+
+export function masteryOf(card: { repetitions: number; interval_days: number; correct_count: number; incorrect_count: number }): MasteryLevel {
+  if (card.correct_count + card.incorrect_count === 0) return "new";
+  if (card.interval_days >= 21) return "mastered";
+  if (card.repetitions >= 2) return "review";
+  return "learning";
 }
 
 function round(n: number) {
