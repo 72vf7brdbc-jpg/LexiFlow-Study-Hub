@@ -2,7 +2,7 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { it } from "date-fns/locale";
-import { ArrowLeft, Check, Layers, Trash2, Volume2, X, Calendar, Edit3, Save, ClipboardList, Plus, Loader2, FileText, ImageIcon } from "lucide-react";
+import { ArrowLeft, Check, Layers, Trash2, Volume2, X, Calendar, Edit3, Save, ClipboardList, Plus, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -58,7 +58,7 @@ const KIND_LABEL: Record<string, string> = { vocabulary: "Vocabolo", grammar: "G
 function MaterialPage() {
   const { materialId } = Route.useParams();
   const { data } = useSuspenseQuery(materialQuery(materialId));
-  const [tab, setTab] = useState<"cards" | "files" | "text">("cards");
+  const [tab, setTab] = useState<"cards" | "text">("cards");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -317,12 +317,10 @@ function MaterialPage() {
         </div>
       </header>
 
-      {/* Tab di navigazione: Schede, File e Allegati, Testo estratto */}
       <div className="flex gap-1 border-b border-border">
         {[
           { id: "cards" as const, label: `Schede (${data.cards.length})` },
-          { id: "files" as const, label: "File e Allegati" },
-          { id: "text" as const, label: "Testo estratto" },
+          { id: "text" as const, label: "Testo estratto e allegati" },
         ].map((t) => (
           <button
             key={t.id}
@@ -337,44 +335,14 @@ function MaterialPage() {
         ))}
       </div>
 
-      {tab === "cards" && (
+      {tab === "cards" ? (
         <ul className="grid gap-4 md:grid-cols-2">
           {data.cards.map((c, i) => (
             <CardItem key={c.id} card={c} index={i} />
           ))}
         </ul>
-      )}
-
-      {tab === "files" && (
-        <div className="space-y-4">
-          <div className="paper p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-lg font-medium">Materiale e allegati della lezione</h3>
-                <p className="text-xs text-muted-foreground">Riepilogo dei file, delle foto o dei documenti associati a questa sessione.</p>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => addFileRef.current?.click()}>
-                <Plus className="size-4 mr-1" /> Aggiungi file
-              </Button>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 pt-2">
-              <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
-                  <FileText className="size-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-sm truncate">{m.title || "Documento principale"}</p>
-                  <p className="text-[11px] text-muted-foreground">Origine: {m.source_type}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {tab === "text" && (
-        <div className="paper lined whitespace-pre-wrap px-6 py-4 text-[15px] leading-8">
+      ) : (
+        <div className="paper lined whitespace-pre-wrap px-6 py-2 text-[15px] leading-8">
           {m.extracted_text || "Nessun testo estratto disponibile."}
         </div>
       )}
@@ -399,4 +367,22 @@ function CardItem({ card: c, index }: { card: Card; index: number }) {
               aria-label={`Ascolta ${c.term}`}
             >
               <Volume2 className="size-4" />
-            
+            </button>
+          </div>
+          {c.phonetic && <p className="font-mono text-xs text-muted-foreground">{c.phonetic}</p>}
+        </div>
+        <Stamp tone={mastery.tone}>{mastery.label}</Stamp>
+      </div>
+      <p className="mt-3 font-semibold">{c.meaning}</p>
+      {c.definition && <p className="mt-1 text-sm text-muted-foreground">{c.definition}</p>}
+      {c.example && <p className="mt-3 border-l-2 border-camel/60 pl-3 text-sm italic text-foreground/80">“{c.example}”</p>}
+      <div className="mt-auto flex items-center justify-between gap-2 pt-4 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-3">
+          <span className="inline-flex items-center gap-1 text-primary"><Check className="size-3.5" /> {c.correct_count}</span>
+          <span className="inline-flex items-center gap-1 text-burgundy"><X className="size-3.5" /> {c.incorrect_count}</span>
+        </span>
+        <span>{isDue ? "Da ripassare ora" : `Prossimo ripasso tra ${formatDistanceToNowStrict(due, { locale: it })}`}</span>
+      </div>
+    </li>
+  );
+}
