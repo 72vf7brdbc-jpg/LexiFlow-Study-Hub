@@ -30,9 +30,10 @@ describe("spaced repetition", () => {
     expect(r.interval_days).toBe(3);
   });
 
-  it("later correct answers multiply the interval by the ease", () => {
-    const r = scheduleCard({ repetitions: 2, ease: 2.5, interval_days: 3 }, true, NOW);
-    expect(r.interval_days).toBeCloseTo(3 * 2.6, 2);
+  it("third, fourth and fifth correct answers schedule 7, 14 and 30 days", () => {
+    expect(scheduleCard({ repetitions: 2, ease: 2.5, interval_days: 3 }, true, NOW).interval_days).toBe(7);
+    expect(scheduleCard({ repetitions: 3, ease: 2.5, interval_days: 7 }, true, NOW).interval_days).toBe(14);
+    expect(scheduleCard({ repetitions: 4, ease: 2.5, interval_days: 14 }, true, NOW).interval_days).toBe(30);
   });
 
   it("a wrong answer resets the card and brings it back in 10 minutes", () => {
