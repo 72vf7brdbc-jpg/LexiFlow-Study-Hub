@@ -17,6 +17,7 @@ export type Database = {
       cards: {
         Row: {
           cloze: string | null
+          collocations: string[]
           correct_count: number
           created_at: string
           definition: string | null
@@ -32,11 +33,13 @@ export type Database = {
           meaning: string
           phonetic: string | null
           repetitions: number
+          synonyms: string[]
           term: string
           user_id: string
         }
         Insert: {
           cloze?: string | null
+          collocations?: string[]
           correct_count?: number
           created_at?: string
           definition?: string | null
@@ -52,11 +55,13 @@ export type Database = {
           meaning: string
           phonetic?: string | null
           repetitions?: number
+          synonyms?: string[]
           term: string
           user_id: string
         }
         Update: {
           cloze?: string | null
+          collocations?: string[]
           correct_count?: number
           created_at?: string
           definition?: string | null
@@ -72,6 +77,7 @@ export type Database = {
           meaning?: string
           phonetic?: string | null
           repetitions?: number
+          synonyms?: string[]
           term?: string
           user_id?: string
         }
@@ -87,40 +93,67 @@ export type Database = {
       }
       materials: {
         Row: {
+          activities: string[]
           card_count: number
           created_at: string
+          enriched_at: string | null
           extracted_text: string | null
+          file_mime: string | null
           file_name: string | null
+          file_path: string | null
           id: string
+          lesson_date: string | null
+          notes: string | null
           source_type: string
           summary: string | null
           title: string
           topic: string | null
+          topics: string | null
+          updated_at: string
           user_id: string
+          vocabulary_notes: string | null
         }
         Insert: {
+          activities?: string[]
           card_count?: number
           created_at?: string
+          enriched_at?: string | null
           extracted_text?: string | null
+          file_mime?: string | null
           file_name?: string | null
+          file_path?: string | null
           id?: string
+          lesson_date?: string | null
+          notes?: string | null
           source_type: string
           summary?: string | null
           title: string
           topic?: string | null
+          topics?: string | null
+          updated_at?: string
           user_id: string
+          vocabulary_notes?: string | null
         }
         Update: {
+          activities?: string[]
           card_count?: number
           created_at?: string
+          enriched_at?: string | null
           extracted_text?: string | null
+          file_mime?: string | null
           file_name?: string | null
+          file_path?: string | null
           id?: string
+          lesson_date?: string | null
+          notes?: string | null
           source_type?: string
           summary?: string | null
           title?: string
           topic?: string | null
+          topics?: string | null
+          updated_at?: string
           user_id?: string
+          vocabulary_notes?: string | null
         }
         Relationships: []
       }
@@ -133,6 +166,7 @@ export type Database = {
           goal: string | null
           id: string
           last_study_date: string | null
+          lesson_days: number[]
           longest_streak: number
           native_language: string | null
           onboarded: boolean
@@ -148,6 +182,7 @@ export type Database = {
           goal?: string | null
           id: string
           last_study_date?: string | null
+          lesson_days?: number[]
           longest_streak?: number
           native_language?: string | null
           onboarded?: boolean
@@ -163,6 +198,7 @@ export type Database = {
           goal?: string | null
           id?: string
           last_study_date?: string | null
+          lesson_days?: number[]
           longest_streak?: number
           native_language?: string | null
           onboarded?: boolean
@@ -178,6 +214,7 @@ export type Database = {
           card_id: string | null
           correct: boolean
           created_at: string
+          exercise: string
           id: string
           mode: string
           user_id: string
@@ -188,6 +225,7 @@ export type Database = {
           card_id?: string | null
           correct: boolean
           created_at?: string
+          exercise?: string
           id?: string
           mode?: string
           user_id: string
@@ -198,6 +236,7 @@ export type Database = {
           card_id?: string | null
           correct?: boolean
           created_at?: string
+          exercise?: string
           id?: string
           mode?: string
           user_id?: string
@@ -209,6 +248,62 @@ export type Database = {
             columns: ["card_id"]
             isOneToOne: false
             referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assigned_on: string
+          completed_at: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          exercise_ref: string | null
+          id: string
+          linked_file: boolean
+          material_id: string
+          source_text: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_on?: string
+          completed_at?: string | null
+          created_at?: string
+          description: string
+          due_date?: string | null
+          exercise_ref?: string | null
+          id?: string
+          linked_file?: boolean
+          material_id: string
+          source_text?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_on?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          exercise_ref?: string | null
+          id?: string
+          linked_file?: boolean
+          material_id?: string
+          source_text?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
             referencedColumns: ["id"]
           },
         ]
