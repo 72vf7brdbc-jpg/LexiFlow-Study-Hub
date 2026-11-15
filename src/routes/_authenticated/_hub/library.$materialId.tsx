@@ -2,7 +2,7 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { it } from "date-fns/locale";
-import { ArrowLeft, Check, Layers, Trash2, Volume2, X, Calendar, Edit3, Save } from "lucide-react";
+import { ArrowLeft, Check, Layers, Trash2, Volume2, X, Calendar, Edit3, Save, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { materialQuery, type Card } from "@/lib/queries";
 import { speakEnglish } from "@/lib/speak";
@@ -67,6 +68,11 @@ function MaterialPage() {
   const [newDate, setNewDate] = useState(m ? m.created_at.slice(0, 16) : "");
   const [savingDate, setSavingDate] = useState(false);
 
+  // Stato per la modifica dei compiti in un secondo momento
+  const [isEditingHomework, setIsEditingHomework] = useState(false);
+  const [homeworkText, setHomeworkText] = useState((m as any).homework ?? "");
+  const [savingHomework, setSavingHomework] = useState(false);
+
   if (!m) {
     return (
       <InlineError
@@ -96,6 +102,24 @@ function MaterialPage() {
     await queryClient.invalidateQueries({ queryKey: ["material", m.id] });
     await queryClient.invalidateQueries({ queryKey: ["materials"] });
     toast.success("Data della lezione aggiornata");
+  }
+
+  async function handleSaveHomework() {
+    setSavingHomework(true);
+    const { error } = await supabase
+      .from("materials")
+      .update({ homework: homeworkText.trim() || null })
+      .eq("id", m.id);
+    
+    setSavingHomework(false);
+    if (error) {
+      toast.error("Impossibile aggiornare i compiti");
+      return;
+    }
+    setIsEditingHomework(false);
+    await queryClient.invalidateQueries({ queryKey: ["material", m.id] });
+    await queryClient.invalidateQueries({ queryKey: ["materials"] });
+    toast.success("Compiti aggiornati");
   }
 
   async function remove() {
@@ -158,13 +182,49 @@ function MaterialPage() {
           <h1 className="mt-3 text-[2rem] font-medium leading-[1.08] sm:text-[2.5rem]">{m.title}</h1>
           {m.summary && <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{m.summary}</p>}
           
-          {/* Box per i compiti manuali */}
-          {(m as any).homework && (
-            <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
-              <p className="eyebrow text-primary mb-1 font-semibold">Compiti assegnati</p>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{(m as any).homework}</p>
+          {/* Box per i compiti manuali (Aggiungibile o Modificabile in qualsiasi momento) */}
+          <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <ClipboardList className="size-4 text-primary" />
+                <p className="eyebrow text-primary font-semibold">Compiti assegnati</p>
+              </div>
+              {!isEditingHomework && (
+                <button
+                  onClick={() => {
+                    setHomeworkText((m as any).homework ?? "");
+                    setIsEditingHomework(true);
+                  }}
+                  className="text-xs text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                >
+                  <Edit3 className="size-3" /> {(m as any).homework ? "Modifica compiti" : "Aggiungi compiti"}
+                </button>
+              )}
             </div>
-          )}
+
+            {isEditingHomework ? (
+              <div className="space-y-2 mt-2">
+                <Textarea
+                  value={homeworkText}
+                  onChange={(e) => setHomeworkText(e.target.value.slice(0, 1000))}
+                  placeholder="Scrivi qui i compiti o gli esercizi assegnati per la prossima lezione..."
+                  className="h-20 text-sm bg-background"
+                />
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={handleSaveHomework} disabled={savingHomework} className="h-8 px-3">
+                    <Save className="size-3.5 mr-1" /> Salva compiti
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setIsEditingHomework(false)} className="h-8 px-2">
+                    Annulla
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground whitespace-pre-wrap mt-1">
+                {(m as any).homework || <span className="text-muted-foreground italic">Nessun compito assegnato inserito. Clicca su "Aggiungi compiti" per scriverli quando vuoi.</span>}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="flex shrink-0 gap-2">
