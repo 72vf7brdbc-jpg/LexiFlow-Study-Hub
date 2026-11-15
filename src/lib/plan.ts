@@ -1,7 +1,7 @@
 // Dynamic study plan: session size depends on the CEFR level and on how many
 // days a week the learner studies (fewer days → bigger sessions).
 
-const BASE_BY_LEVEL: Record<string, number> = { A1: 10, A2: 12, B1: 15, B2: 18 };
+const BASE_BY_LEVEL: Record<string, number> = { A1: 10, A2: 12, B1: 15, B2: 18, C1: 20, C2: 22 };
 
 export function sessionSize(level: string | null | undefined, daysPerWeek: number | null | undefined): number {
   const base = BASE_BY_LEVEL[level ?? "B1"] ?? 15;
