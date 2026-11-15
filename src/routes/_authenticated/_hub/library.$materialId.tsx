@@ -2,8 +2,8 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { it } from "date-fns/locale";
-import { ArrowLeft, Check, Layers, Trash2, Volume2, X, Calendar, Edit3, Save, ClipboardList } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Check, Layers, Trash2, Volume2, X, Calendar, Edit3, Save, ClipboardList, Plus, Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { SourceIcon, sourceLabel } from "@/components/lexi/source-icon";
@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { prepareUpload } from "@/lib/file-prep";
 import { supabase } from "@/integrations/supabase/client";
 import { materialQuery, type Card } from "@/lib/queries";
 import { speakEnglish } from "@/lib/speak";
@@ -73,6 +74,10 @@ function MaterialPage() {
   const [homeworkText, setHomeworkText] = useState((m as any).homework ?? "");
   const [savingHomework, setSavingHomework] = useState(false);
 
+  // Stato per l'aggiunta di nuovi file/foto in un secondo momento
+  const [addingFiles, setAddingFiles] = useState(false);
+  const addFileRef = useRef<HTMLInputElement>(null);
+
   if (!m) {
     return (
       <InlineError
@@ -122,6 +127,40 @@ function MaterialPage() {
     toast.success("Compiti aggiornati");
   }
 
+  // Funzione per gestire l'aggiunta di nuovi allegati/foto in un secondo momento
+  async function handleAddMoreFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    setAddingFiles(true);
+    try {
+      const extraTexts: string[] = [];
+      for (const file of Array.from(fileList)) {
+        const prepared = await prepareUpload(file);
+        if (prepared.kind === "text") {
+          extraTexts.push(`\n\n--- [Allegato successivo: ${file.name}] ---\n${prepared.text}`);
+        }
+      }
+
+      if (extraTexts.length > 0) {
+        const currentText = m.extracted_text || "";
+        const updatedText = currentText + extraTexts.join("");
+        const { error } = await supabase
+          .from("materials")
+          .update({ extracted_text: updatedText })
+          .eq("id", m.id);
+
+        if (error) throw error;
+        await queryClient.invalidateQueries({ queryKey: ["material", m.id] });
+        toast.success("Nuovi file aggiunti con successo alla lezione!");
+      } else {
+        toast.success("File ricevuti correttamente.");
+      }
+    } catch (e) {
+      toast.error("Errore durante l'aggiunta dei file");
+    } finally {
+      setAddingFiles(false);
+    }
+  }
+
   async function remove() {
     const { error } = await supabase.from("materials").delete().eq("id", m.id);
     if (error) {
@@ -138,6 +177,16 @@ function MaterialPage() {
 
   return (
     <div className="space-y-8">
+      {/* Input nascosto per selezionare nuovi file/foto in un secondo momento */}
+      <input
+        ref={addFileRef}
+        type="file"
+        accept="application/pdf,image/*,.txt,.md,.markdown,.csv,text/plain"
+        multiple
+        className="sr-only"
+        onChange={(e) => { handleAddMoreFiles(e.target.files); e.target.value = ""; }}
+      />
+
       <Link to="/library" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Archivio
       </Link>
@@ -183,7 +232,7 @@ function MaterialPage() {
           {m.summary && <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{m.summary}</p>}
           
           {/* Box per i compiti manuali (Aggiungibile o Modificabile in qualsiasi momento) */}
-          <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <div className="mt-4 rounded-xl border border-primary/25 bg-primary/5 p-4">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 <ClipboardList className="size-4 text-primary" />
@@ -227,7 +276,18 @@ function MaterialPage() {
           </div>
         </div>
 
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {/* Pulsante per aggiungere allegati in un secondo momento */}
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => addFileRef.current?.click()}
+            disabled={addingFiles}
+          >
+            {addingFiles ? <Loader2 className="animate-spin" /> : <Plus />}
+            {addingFiles ? "Aggiungo..." : "Aggiungi allegati"}
+          </Button>
+
           <Button asChild size="lg">
             <Link to="/review" search={{ material: m.id }}>
               <Layers /> Ripassa {data.cards.length} schede
@@ -260,7 +320,7 @@ function MaterialPage() {
       <div className="flex gap-1 border-b border-border">
         {[
           { id: "cards" as const, label: `Schede (${data.cards.length})` },
-          { id: "text" as const, label: "Testo estratto" },
+          { id: "text" as const, label: "Testo estratto e allegati" },
         ].map((t) => (
           <button
             key={t.id}
