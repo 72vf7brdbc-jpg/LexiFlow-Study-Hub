@@ -1,5 +1,4 @@
 import { createParser } from "eventsource-parser";
-
 import { supabase } from "@/integrations/supabase/client";
 
 /** Uploads a recorded clip and returns the final transcript. */
@@ -26,8 +25,10 @@ export async function transcribeRecording(file: File, signal?: AbortSignal): Pro
   let text = "";
   let finalText: string | null = null;
   let streamError: string | null = null;
-  const parser = createParser({
-    onEvent(event) {
+
+  // CORRETTO: Passiamo direttamente la funzione callback a createParser
+  const parser = createParser((event) => {
+    if (event.type === "event") {
       if (!event.data || event.data === "[DONE]") return;
       try {
         const payload = JSON.parse(event.data) as { type?: string; delta?: string; text?: string; error?: { message?: string } };
@@ -37,7 +38,7 @@ export async function transcribeRecording(file: File, signal?: AbortSignal): Pro
       } catch {
         /* ignore keep-alive frames */
       }
-    },
+    }
   });
 
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
