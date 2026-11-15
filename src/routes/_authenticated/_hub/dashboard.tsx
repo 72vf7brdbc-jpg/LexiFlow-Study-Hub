@@ -1,8 +1,8 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { addDays, format, startOfWeek } from "date-fns";
+import { addDays, format, startOfWeek, getDay } from "date-fns";
 import { it } from "date-fns/locale";
-import { ArrowRight, Camera, FileText, Flame, Layers, PenLine, Sparkles, Target, Trophy } from "lucide-react";
+import { ArrowRight, Camera, FileText, Flame, Layers, PenLine, Sparkles, Target, Trophy, CalendarCheck, CheckCircle2, Clock } from "lucide-react";
 
 import { InlineError, LoadingScreen, ProgressRing, Stamp } from "@/components/lexi/ui-bits";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { materialsQuery, profileQuery, statsQuery } from "@/lib/queries";
 import { displayedStreak, maxGapDays, toLocalDateString } from "@/lib/streak";
 import { goalName, levelName } from "@/lib/study-config";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/_hub/dashboard")({
   head: () => ({
@@ -46,7 +48,30 @@ function Dashboard() {
   const { data: stats } = useSuspenseQuery(statsQuery);
   const { data: materials } = useSuspenseQuery(materialsQuery);
 
+  // Recuperiamo anche i compiti (tasks) dal database per il riepilogo odierno
+  const { data: tasks = [] } = useQuery({
+    queryKey: ["tasks-summary"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("user_id", profile.id)
+        .order("due_date", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const today = toLocalDateString();
+  const now = new Date();
+  const jsDay = getDay(now); // 0 = Domenica, 1 = Lunedì, ..., 6 = Sabato
+  // Convertiamo il giorno JS nel formato della nostra app (1 = Lunedì ... 7 = Domenica)
+  const currentDayId = jsDay === 0 ? 7 : jsDay;
+  
+  // Verifichiamo se oggi è un giorno di lezione configurato nel profilo
+  const lessonDays = profile.lesson_days ?? [];
+  const isLessonDay = lessonDays.includes(currentDayId);
+
   const days = profile.days_per_week ?? 5;
   const streak = displayedStreak({ streak: profile.streak, lastStudyDate: profile.last_study_date, daysPerWeek: days }, today);
   const goal = dailyXpGoal(profile.cefr_level, days);
@@ -57,6 +82,9 @@ function Dashboard() {
   const studiedCount = week.filter((d) => studied.has(toLocalDateString(d))).length;
   const name = profile.display_name?.split(/[\s.@_]/)[0] ?? "";
   const dueNow = Math.min(stats.dueCount, size);
+
+  // Filtriamo i compiti non completati
+  const pendingTasks = tasks.filter((t) => t.status !== "completed");
 
   return (
     <div className="space-y-8">
@@ -73,6 +101,27 @@ function Dashboard() {
           <Stamp tone="navy">{goalName(profile.goal)}</Stamp>
         </div>
       </header>
+
+      {/* Avviso nei giorni di lezione */}
+      {isLessonDay && (
+        <div className="animate-rise flex items-center justify-between rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5 shadow-soft">
+          <div className="flex items-center gap-3.5">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft">
+              <CalendarCheck className="size-5" />
+            </div>
+            <div>
+              <p className="eyebrow text-primary">Oggi hai lezione!</p>
+              <h2 className="text-base font-semibold sm:text-lg">Programma della giornata di studio in classe</h2>
+              <p className="text-xs text-muted-foreground">Ricordati di caricare i materiali o gli appunti a fine lezione per generare il vocabolario.</p>
+            </div>
+          </div>
+          <Button asChild size="sm" className="hidden sm:inline-flex">
+            <Link to="/upload">
+              Carica lezione <ArrowRight className="ml-1 size-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
 
       <section className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
         <div className="paper animate-rise relative overflow-hidden p-6 shadow-lift sm:p-8 [animation-delay:60ms]">
@@ -150,6 +199,49 @@ function Dashboard() {
           unit={stats.weekAccuracy === null ? "" : "%"}
           note="Questa settimana"
         />
+      </section>
+
+      {/* Sezione Compiti in scadenza */}
+      <section className="paper p-6">
+        <div className="flex items-baseline justify-between">
+          <div>
+            <p className="eyebrow">Organizzazione studio</p>
+            <h3 className="mt-1 text-xl font-medium">Compiti per casa</h3>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {pendingTasks.length === 0 ? "Nessun compito in sospeso" : `${pendingTasks.length} da completare`}
+          </span>
+        </div>
+        {pendingTasks.length > 0 ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {pendingTasks.slice(0, 3).map((task) => (
+              <div key={task.id} className="flex flex-col justify-between rounded-xl border border-border bg-background p-4 shadow-soft">
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="eyebrow text-[10px] text-primary">{task.exercise_ref || "Compito"}</span>
+                    {task.due_date && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Clock className="size-3" /> {format(new Date(task.due_date), "d MMM", { locale: it })}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm font-semibold leading-snug line-clamp-2">{task.description}</p>
+                </div>
+                <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                  <span className="text-xs text-muted-foreground capitalize">Stato: {task.status}</span>
+                  <Link to="/library/$materialId" params={{ materialId: task.material_id }} className="text-xs font-semibold text-primary hover:underline">
+                    Visualizza materiale →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
+            <CheckCircle2 className="size-5 text-primary shrink-0" />
+            <span>Tutti i compiti assegnati dall'AI sono stati completati o non ci sono scadenze imminenti. Buon lavoro!</span>
+          </div>
+        )}
       </section>
 
       <section className="grid gap-5 lg:grid-cols-[1fr_1.15fr]">
