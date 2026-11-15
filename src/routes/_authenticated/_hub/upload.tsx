@@ -1,7 +1,7 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowRight, Camera, Check, FileText, FileUp, ImageIcon, Loader2, PenLine, RotateCcw, Sparkles, X, BookOpen } from "lucide-react";
+import { ArrowRight, Camera, Check, FileText, FileUp, ImageIcon, Loader2, PenLine, RotateCcw, Sparkles, X, BookOpen, ClipboardList } from "lucide-react";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { toast } from "sonner";
 
@@ -56,6 +56,7 @@ function UploadPage() {
   const mode: Mode = search.mode ?? "photo";
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
+  const [homework, setHomework] = useState(""); // Stato per i compiti manuali
   const [prepared, setPrepared] = useState<PreparedUpload | null>(null);
   const [fileMeta, setFileMeta] = useState<{ name: string; size: number } | null>(null);
   const [preparing, setPreparing] = useState(false);
@@ -129,7 +130,8 @@ function UploadPage() {
                 mimeType: prepared!.kind === "binary" ? prepared!.mimeType : null,
                 fileName: prepared!.fileName,
               }),
-        saveOnly, // Inseriamo il flag per indicare se archiviare solo come registro
+        saveOnly,
+        homework: homework.trim() || null, // Inviamo anche i compiti manuali
       };
 
       const res = await analyze({ data: payload });
@@ -155,6 +157,7 @@ function UploadPage() {
     setFileMeta(null);
     setText("");
     setTitle("");
+    setHomework("");
     setError(null);
     setSaveOnly(false);
   }
@@ -345,6 +348,23 @@ function UploadPage() {
             className="h-11 rounded-xl bg-paper"
             disabled={busy}
           />
+        </div>
+
+        {/* Sezione per i Compiti Assegnati Manuali */}
+        <div className="paper space-y-3 p-5 sm:p-6">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="size-4 text-primary" />
+            <label htmlFor="homework" className="eyebrow">Compiti assegnati (facoltativo)</label>
+          </div>
+          <Textarea
+            id="homework"
+            value={homework}
+            onChange={(e) => setHomework(e.target.value.slice(0, 1000))}
+            placeholder="Es. Esercizio a pagina 3 del file allegato, studiare i phrasal verbs..."
+            className="h-24 resize-y rounded-xl bg-background p-3 text-sm"
+            disabled={busy}
+          />
+          <p className="text-xs text-muted-foreground">Scrivi qui eventuali consegne o esercizi assegnati dalla professoressa per la prossima lezione.</p>
         </div>
 
         {/* Opzione "Solo registro" */}
