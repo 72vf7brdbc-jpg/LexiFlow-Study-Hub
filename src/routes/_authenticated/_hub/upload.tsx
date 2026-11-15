@@ -1,7 +1,7 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowRight, Camera, Check, FileText, FileUp, ImageIcon, Loader2, PenLine, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowRight, Camera, Check, FileText, FileUp, ImageIcon, Loader2, PenLine, RotateCcw, Sparkles, X, BookOpen } from "lucide-react";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { toast } from "sonner";
 
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/_hub/upload")({
   head: () => ({
     meta: [
       { title: "Carica una lezione — LexiFlow" },
-      { name: "description", content: "Carica foto, file o testo: l'AI crea le tue schede di studio." },
+      { name: "description", content: "Carica foto, file o testo: l'AI crea le tue schede di studio o archivia il registro." },
       { property: "og:title", content: "Carica una lezione — LexiFlow" },
       { property: "og:description", content: "Da dispense e appunti a schede di vocabolario, in un attimo." },
       { property: "og:type", content: "website" },
@@ -44,7 +44,7 @@ const MODES = [
 
 const PHASES = ["Leggo il materiale", "Estraggo il vocabolario chiave", "Calibro le schede sul tuo livello", "Salvo nel tuo archivio"];
 
-type Done = { materialId: string; title: string; cardCount: number };
+type Done = { materialId: string; title: string; cardCount: number; saveOnly: boolean };
 
 function UploadPage() {
   const search = Route.useSearch();
@@ -64,6 +64,9 @@ function UploadPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Done | null>(null);
   const [dragging, setDragging] = useState(false);
+  
+  // Nuovo stato per l'opzione "Solo registro"
+  const [saveOnly, setSaveOnly] = useState(false);
 
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -114,8 +117,8 @@ function UploadPage() {
     setError(null);
     setBusy(true);
     try {
-      const payload =
-        mode === "text"
+      const payload = {
+        ...(mode === "text"
           ? { sourceType: "text" as const, title: title || null, text }
           : prepared?.kind === "text"
             ? { sourceType: mode, title: title || null, text: prepared.text, fileName: prepared.fileName }
@@ -125,16 +128,19 @@ function UploadPage() {
                 base64: prepared!.kind === "binary" ? prepared!.base64 : null,
                 mimeType: prepared!.kind === "binary" ? prepared!.mimeType : null,
                 fileName: prepared!.fileName,
-              };
+              }),
+        saveOnly, // Inseriamo il flag per indicare se archiviare solo come registro
+      };
+
       const res = await analyze({ data: payload });
       if (!res.ok) {
         setError(res.message);
         return;
       }
-      setDone({ materialId: res.materialId, title: res.title, cardCount: res.cardCount });
+      setDone({ materialId: res.materialId, title: res.title, cardCount: res.cardCount, saveOnly });
       queryClient.invalidateQueries({ queryKey: ["materials"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
-      toast.success(`${res.cardCount} schede create`);
+      toast.success(saveOnly ? "Lezione archiviata nel registro" : `${res.cardCount} schede create`);
     } catch (e) {
       console.error(e);
       setError("Connessione interrotta durante l'analisi. Controlla la rete e riprova.");
@@ -150,6 +156,7 @@ function UploadPage() {
     setText("");
     setTitle("");
     setError(null);
+    setSaveOnly(false);
   }
 
   if (done) {
@@ -162,18 +169,26 @@ function UploadPage() {
           <p className="eyebrow mt-6">Lezione archiviata</p>
           <h1 className="mt-2 text-[2rem] font-medium leading-tight">{done.title}</h1>
           <p className="mt-2 text-muted-foreground">
-            <span className="font-display text-2xl italic text-primary">{done.cardCount}</span> schede pronte per il livello{" "}
-            {profile.cefr_level}.
+            {done.saveOnly ? (
+              <span>Salvato nel registro delle lezioni senza creare nuove schede.</span>
+            ) : (
+              <>
+                <span className="font-display text-2xl italic text-primary">{done.cardCount}</span> schede pronte per il livello{" "}
+                {profile.cefr_level}.
+              </>
+            )}
           </p>
           <div className="mt-7 flex flex-col justify-center gap-2.5 sm:flex-row">
-            <Button asChild size="lg">
-              <Link to="/review" search={{ material: done.materialId }}>
-                Ripassa subito <ArrowRight />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
+            {!done.saveOnly && (
+              <Button asChild size="lg">
+                <Link to="/review" search={{ material: done.materialId }}>
+                  Ripassa subito <ArrowRight />
+                </Link>
+              </Button>
+            )}
+            <Button asChild size="lg" variant={done.saveOnly ? "default" : "outline"}>
               <Link to="/library/$materialId" params={{ materialId: done.materialId }}>
-                Vedi le schede
+                {done.saveOnly ? "Apri nel registro" : "Vedi le schede"}
               </Link>
             </Button>
           </div>
@@ -332,6 +347,37 @@ function UploadPage() {
           />
         </div>
 
+        {/* Opzione "Solo registro" */}
+        <div className="paper flex items-center justify-between p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-secondary text-primary">
+              <BookOpen className="size-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm sm:text-base">Registra senza creare schede</p>
+              <p className="text-xs text-muted-foreground">Salva il materiale e gli appunti nell'archivio senza generare nuove flashcard di ripasso.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={saveOnly}
+            onClick={() => setSaveOnly(!saveOnly)}
+            disabled={busy}
+            className={cn(
+              "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+              saveOnly ? "bg-primary" : "bg-input",
+            )}
+          >
+            <span
+              className={cn(
+                "pointer-events-none inline-block size-5 transform rounded-full bg-paper shadow-lg ring-0 transition duration-200 ease-in-out",
+                saveOnly ? "translate-x-5" : "translate-x-0",
+              )}
+            />
+          </button>
+        </div>
+
         {error && (
           <div role="alert" className="flex items-start gap-3 rounded-xl border border-burgundy/25 bg-danger-soft px-4 py-3 text-sm text-burgundy">
             <X className="mt-0.5 size-4 shrink-0" />
@@ -358,7 +404,7 @@ function UploadPage() {
             </div>
           )}
           <Button size="lg" onClick={submit} disabled={!canSubmit || busy || preparing} className="sm:min-w-[210px]">
-            {busy ? <Loader2 className="animate-spin" /> : <Sparkles />} {busy ? "Analisi in corso" : "Crea le schede"}
+            {busy ? <Loader2 className="animate-spin" /> : <Sparkles />} {busy ? "Analisi in corso" : saveOnly ? "Salva nel registro" : "Crea le schede"}
           </Button>
         </div>
         {mode === "text" && !canSubmit && text.length > 0 && (
