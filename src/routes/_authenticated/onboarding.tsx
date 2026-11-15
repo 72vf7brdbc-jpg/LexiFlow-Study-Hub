@@ -31,7 +31,17 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
   component: Onboarding,
 });
 
-const STEPS = ["Lingua & livello", "Obiettivo", "Frequenza"] as const;
+const STEPS = ["Lingua & livello", "Obiettivo", "Frequenza & Lezioni"] as const;
+
+const WEEKDAYS = [
+  { id: 1, label: "Lunedì", short: "Lun" },
+  { id: 2, label: "Martedì", short: "Mar" },
+  { id: 3, label: "Mercoledì", short: "Mer" },
+  { id: 4, label: "Giovedì", short: "Gio" },
+  { id: 5, label: "Venerdì", short: "Ven" },
+  { id: 6, label: "Sabato", short: "Sab" },
+  { id: 7, label: "Domenica", short: "Dom" },
+];
 
 function Onboarding() {
   const { data: profile } = useSuspenseQuery(profileQuery);
@@ -41,17 +51,33 @@ function Onboarding() {
   const [lang, setLang] = useState<string>(profile.native_language ?? "it");
   const [level, setLevel] = useState<CefrLevel | null>((profile.cefr_level as CefrLevel) ?? null);
   const [goal, setGoal] = useState<StudyGoal | null>((profile.goal as StudyGoal) ?? null);
-  const [days, setDays] = useState<number>(profile.days_per_week ?? 4);
+  
+  // Gestione dei giorni di lezione specifici (array di numeri, es. [1, 3, 5])
+  const [lessonDays, setLessonDays] = useState<number[]>(profile.lesson_days ?? [1, 3, 5]);
   const [saving, setSaving] = useState(false);
 
-  const canNext = step === 0 ? !!lang && !!level : step === 1 ? !!goal : days >= 1;
+  const daysCount = Math.max(1, lessonDays.length);
+  const canNext = step === 0 ? !!lang && !!level : step === 1 ? !!goal : lessonDays.length > 0;
+
+  function toggleDay(dayId: number) {
+    setLessonDays((prev) =>
+      prev.includes(dayId) ? prev.filter((d) => d !== dayId) : [...prev, dayId].sort((a, b) => a - b)
+    );
+  }
 
   async function finish() {
     if (!level || !goal) return;
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ native_language: lang, cefr_level: level, goal, days_per_week: days, onboarded: true })
+      .update({
+        native_language: lang,
+        cefr_level: level,
+        goal,
+        days_per_week: daysCount,
+        lesson_days: lessonDays,
+        onboarded: true,
+      })
       .eq("id", profile.id);
     setSaving(false);
     if (error) {
@@ -148,41 +174,46 @@ function Onboarding() {
           {step === 2 && (
             <section>
               <h1 className="text-[2rem] font-medium leading-tight sm:text-[2.5rem]">
-                Quanti giorni a settimana <span className="italic text-primary">ti alleni</span>?
+                Quali giorni hai <span className="italic text-primary">lezione</span>?
               </h1>
-              <p className="mt-2 text-muted-foreground">Conta le lezioni o i giorni in cui vuoi ripassare.</p>
-              <div className="mt-8 grid grid-cols-7 gap-2">
-                {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDays(d)}
-                    aria-pressed={days === d}
-                    aria-label={`${d} giorni a settimana`}
-                    className={cn(
-                      "flex aspect-square flex-col items-center justify-center rounded-2xl border font-display text-2xl font-medium transition-all duration-200 sm:text-3xl",
-                      days === d
-                        ? "animate-pop border-primary bg-primary text-primary-foreground shadow-soft"
-                        : d < days
-                          ? "border-primary/30 bg-success-soft text-primary"
-                          : "border-border bg-paper hover:border-foreground/25",
-                    )}
-                  >
-                    {d}
-                  </button>
-                ))}
+              <p className="mt-2 text-muted-foreground">Seleziona i giorni della settimana in cui segui o studi regolarmente.</p>
+              
+              <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {WEEKDAYS.map((d) => {
+                  const isSelected = lessonDays.includes(d.id);
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => toggleDay(d.id)}
+                      aria-pressed={isSelected}
+                      className={cn(
+                        "flex items-center justify-between rounded-2xl border p-4 font-medium transition-all duration-200",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground shadow-soft"
+                          : "border-border bg-paper hover:border-foreground/25 text-foreground",
+                      )}
+                    >
+                      <span>{d.label}</span>
+                      <span className={cn("flex size-5 items-center justify-center rounded-full border text-xs", isSelected ? "border-primary-foreground bg-primary-foreground text-primary" : "border-border")}>
+                        {isSelected ? <Check className="size-3" /> : null}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
+
               <div className="paper mt-8 grid gap-px overflow-hidden bg-border p-0 sm:grid-cols-3">
-                <PlanStat icon={<Layers className="size-4" />} label="Schede per sessione" value={String(sessionSize(level, days))} />
-                <PlanStat icon={<Timer className="size-4" />} label="Minuti a settimana" value={`~${weeklyMinutes(level, days)}`} />
+                <PlanStat icon={<Layers className="size-4" />} label="Schede per sessione" value={String(sessionSize(level, daysCount))} />
+                <PlanStat icon={<Timer className="size-4" />} label="Minuti a settimana" value={`~${weeklyMinutes(level, daysCount)}`} />
                 <PlanStat
                   icon={<Flame className="size-4" />}
                   label="Streak"
-                  value={maxGapDays(days) === 1 ? "ogni giorno" : `pausa max ${maxGapDays(days) - 1} gg`}
+                  value={maxGapDays(daysCount) === 1 ? "ogni giorno" : `pausa max ${maxGapDays(daysCount) - 1} gg`}
                 />
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                La tua streak resta viva finché non salti più giorni di quelli previsti dal tuo ritmo.
+                L'app riconoscerà automaticamente i giorni di lezione per pianificare il riepilogo e i compiti.
               </p>
             </section>
           )}
