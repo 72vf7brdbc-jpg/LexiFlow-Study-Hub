@@ -2,7 +2,7 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { it } from "date-fns/locale";
-import { ArrowLeft, Check, Layers, Trash2, Volume2, X } from "lucide-react";
+import { ArrowLeft, Check, Layers, Trash2, Volume2, X, Calendar, Edit3, Save } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { materialQuery, type Card } from "@/lib/queries";
 import { speakEnglish } from "@/lib/speak";
@@ -59,7 +60,14 @@ function MaterialPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  if (!data.material) {
+  const m = data.material;
+  
+  // Stato per la modifica della data
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const [newDate, setNewDate] = useState(m ? m.created_at.slice(0, 16) : "");
+  const [savingDate, setSavingDate] = useState(false);
+
+  if (!m) {
     return (
       <InlineError
         title="Lezione non trovata"
@@ -68,8 +76,27 @@ function MaterialPage() {
       />
     );
   }
-  const m = data.material;
+
   const created = new Date(m.created_at);
+
+  async function handleSaveDate() {
+    if (!newDate) return;
+    setSavingDate(true);
+    const { error } = await supabase
+      .from("materials")
+      .update({ created_at: new Date(newDate).toISOString() })
+      .eq("id", m.id);
+    
+    setSavingDate(false);
+    if (error) {
+      toast.error("Impossibile aggiornare la data");
+      return;
+    }
+    setIsEditingDate(false);
+    await queryClient.invalidateQueries({ queryKey: ["material", m.id] });
+    await queryClient.invalidateQueries({ queryKey: ["materials"] });
+    toast.success("Data della lezione aggiornata");
+  }
 
   async function remove() {
     const { error } = await supabase.from("materials").delete().eq("id", m.id);
@@ -97,11 +124,49 @@ function MaterialPage() {
             <Stamp tone="camel">
               <SourceIcon type={m.source_type} className="size-3" /> {sourceLabel(m.source_type)}
             </Stamp>
-            <span className="eyebrow">{format(created, "d MMMM yyyy · HH:mm", { locale: it })}</span>
+            
+            {/* Sezione Data modificabile */}
+            {isEditingDate ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="datetime-local"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  className="h-8 text-xs rounded-lg bg-background"
+                />
+                <Button size="sm" onClick={handleSaveDate} disabled={savingDate} className="h-8 px-3">
+                  <Save className="size-3.5 mr-1" /> Salva
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setIsEditingDate(false)} className="h-8 px-2">
+                  Annulla
+                </Button>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2">
+                <span className="eyebrow">{format(created, "d MMMM yyyy · HH:mm", { locale: it })}</span>
+                <button
+                  onClick={() => setIsEditingDate(true)}
+                  className="text-xs text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                  title="Modifica data lezione"
+                >
+                  <Edit3 className="size-3" /> Modifica data
+                </button>
+              </div>
+            )}
           </div>
+
           <h1 className="mt-3 text-[2rem] font-medium leading-[1.08] sm:text-[2.5rem]">{m.title}</h1>
           {m.summary && <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{m.summary}</p>}
+          
+          {/* Box per i compiti manuali */}
+          {(m as any).homework && (
+            <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <p className="eyebrow text-primary mb-1 font-semibold">Compiti assegnati</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{(m as any).homework}</p>
+            </div>
+          )}
         </div>
+
         <div className="flex shrink-0 gap-2">
           <Button asChild size="lg">
             <Link to="/review" search={{ material: m.id }}>
