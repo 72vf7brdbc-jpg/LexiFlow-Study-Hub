@@ -1,6 +1,6 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Loader2, LogOut, Save } from "lucide-react";
+import { Loader2, LogOut, Save, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -30,6 +30,16 @@ export const Route = createFileRoute("/_authenticated/_hub/settings")({
   component: SettingsPage,
 });
 
+const WEEKDAYS = [
+  { id: 1, label: "Lunedì" },
+  { id: 2, label: "Martedì" },
+  { id: 3, label: "Mercoledì" },
+  { id: 4, label: "Giovedì" },
+  { id: 5, label: "Venerdì" },
+  { id: 6, label: "Sabato" },
+  { id: 7, label: "Domenica" },
+];
+
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -54,14 +64,35 @@ function SettingsPage() {
   const [lang, setLang] = useState(profile.native_language ?? "it");
   const [level, setLevel] = useState(profile.cefr_level ?? "B1");
   const [goal, setGoal] = useState(profile.goal ?? "conversation");
-  const [days, setDays] = useState(profile.days_per_week ?? 4);
+  
+  // Gestione dei giorni di lezione specifici
+  const [lessonDays, setLessonDays] = useState<number[]>(profile.lesson_days ?? [1, 3, 5]);
   const [saving, setSaving] = useState(false);
 
+  const daysCount = Math.max(1, lessonDays.length);
+
+  function toggleDay(dayId: number) {
+    setLessonDays((prev) =>
+      prev.includes(dayId) ? prev.filter((d) => d !== dayId) : [...prev, dayId].sort((a, b) => a - b)
+    );
+  }
+
   async function save() {
+    if (lessonDays.length === 0) {
+      toast.error("Seleziona almeno un giorno di lezione.");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ display_name: name.trim().slice(0, 60) || null, native_language: lang, cefr_level: level, goal, days_per_week: days })
+      .update({
+        display_name: name.trim().slice(0, 60) || null,
+        native_language: lang,
+        cefr_level: level,
+        goal,
+        days_per_week: daysCount,
+        lesson_days: lessonDays,
+      })
       .eq("id", profile.id);
     setSaving(false);
     if (error) {
@@ -120,17 +151,42 @@ function SettingsPage() {
             ))}
           </div>
         </div>
+        
+        {/* Sezione Giorni di lezione specifici */}
         <div>
-          <p className="eyebrow mb-3">Giorni a settimana</p>
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-              <Chip key={d} active={days === d} onClick={() => setDays(d)}>{d}</Chip>
-            ))}
+          <p className="eyebrow mb-3">Giorni di lezione</p>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Seleziona i giorni in cui hai lezione o in cui desideri studiare regolarmente (puoi modificarli se l'orario cambia).
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {WEEKDAYS.map((d) => {
+              const isSelected = lessonDays.includes(d.id);
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => toggleDay(d.id)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "flex items-center justify-between rounded-xl border p-3.5 text-sm font-medium transition-all duration-200",
+                    isSelected
+                      ? "border-primary bg-primary text-primary-foreground shadow-soft"
+                      : "border-border bg-background hover:border-foreground/25 text-foreground",
+                  )}
+                >
+                  <span>{d.label}</span>
+                  <span className={cn("flex size-4 items-center justify-center rounded-full border text-[10px]", isSelected ? "border-primary-foreground bg-primary-foreground text-primary" : "border-border")}>
+                    {isSelected ? <Check className="size-2.5" /> : null}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Sessioni da {sessionSize(level, days)} schede · circa {weeklyMinutes(level, days)} minuti a settimana.
+            Sessioni da {sessionSize(level, daysCount)} schede · circa {weeklyMinutes(level, daysCount)} minuti a settimana ({daysCount} giorni selezionati).
           </p>
         </div>
+
         <div className="ledger-rule flex flex-col-reverse gap-3 pt-6 sm:flex-row sm:justify-between">
           <Button variant="ghost" onClick={signOut}>
             <LogOut /> Esci dall'account
