@@ -26,10 +26,9 @@ export async function transcribeRecording(file: File, signal?: AbortSignal): Pro
   let finalText: string | null = null;
   let streamError: string | null = null;
 
-  // CORRETTO: Passiamo la callback dentro l'oggetto di configurazione con onEvent
   const parser = createParser({
     onEvent: (event) => {
-      if (event.type === "event") {
+      {
         if (!event.data || event.data === "[DONE]") return;
         try {
           const payload = JSON.parse(event.data) as { type?: string; delta?: string; text?: string; error?: { message?: string } };

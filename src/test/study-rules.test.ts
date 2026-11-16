@@ -36,11 +36,12 @@ describe("spaced repetition", () => {
     expect(scheduleCard({ repetitions: 4, ease: 2.5, interval_days: 14 }, true, NOW).interval_days).toBe(30);
   });
 
-  it("a wrong answer resets the card and brings it back in 10 minutes", () => {
+  it("a wrong answer sends the word back to level 1, due again in 1 day", () => {
     const r = scheduleCard({ repetitions: 4, ease: 2.5, interval_days: 20 }, false, NOW);
-    expect(r.repetitions).toBe(0);
+    expect(r.repetitions).toBe(1);
+    expect(r.interval_days).toBe(1);
     expect(r.ease).toBe(2.3);
-    expect(r.due_at.getTime() - NOW.getTime()).toBe(10 * 60 * 1000);
+    expect(r.due_at.getTime() - NOW.getTime()).toBe(DAY);
   });
 
   it("ease never drops below 1.3", () => {
