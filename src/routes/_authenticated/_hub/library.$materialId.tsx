@@ -88,10 +88,7 @@ const KIND_LABEL: Record<string, string> = {
   phrase: "Espressione",
 };
 
-const TASK_STATUS: Record<
-  string,
-  { label: string; className: string }
-> = {
+const TASK_STATUS = {
   todo: {
     label: "Da fare",
     className: "text-muted-foreground bg-secondary",
@@ -100,11 +97,11 @@ const TASK_STATUS: Record<
     label: "In corso",
     className: "text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-950",
   },
-  completed: {
+  done: {
     label: "Completato",
     className: "text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-950",
   },
-};
+} as const;
 
 function MaterialPage() {
   const { materialId } = Route.useParams();
@@ -114,13 +111,13 @@ function MaterialPage() {
 
   const [tab, setTab] = useState<"cards" | "files" | "text">("cards");
 
-  const m = data.material;
+  const maybeM = data.material;
   const tasks: Task[] = data.tasks ?? [];
 
   // Modifica della data della lezione
   const [isEditingDate, setIsEditingDate] = useState(false);
   const [newDate, setNewDate] = useState(
-    m ? m.created_at.slice(0, 16) : "",
+    maybeM ? maybeM.created_at.slice(0, 16) : "",
   );
   const [savingDate, setSavingDate] = useState(false);
 
@@ -134,7 +131,7 @@ function MaterialPage() {
   const [addingFiles, setAddingFiles] = useState(false);
   const addFileRef = useRef<HTMLInputElement>(null);
 
-  if (!m) {
+  if (!maybeM) {
     return (
       <InlineError
         title="Lezione non trovata"
@@ -144,6 +141,7 @@ function MaterialPage() {
     );
   }
 
+  const m = maybeM;
   const created = new Date(m.created_at);
 
   async function refreshMaterial() {
@@ -236,7 +234,7 @@ function MaterialPage() {
       currentStatus === "todo"
         ? "in_progress"
         : currentStatus === "in_progress"
-          ? "completed"
+          ? "done"
           : "todo";
 
     const { error } = await supabase
@@ -244,7 +242,7 @@ function MaterialPage() {
       .update({
         status: nextStatus,
         completed_at:
-          nextStatus === "completed" ? new Date().toISOString() : null,
+          nextStatus === "done" ? new Date().toISOString() : null,
       })
       .eq("id", taskId);
 
@@ -257,7 +255,7 @@ function MaterialPage() {
     await refreshMaterial();
 
     toast.success(
-      nextStatus === "completed"
+      nextStatus === "done"
         ? "Compito completato!"
         : nextStatus === "in_progress"
           ? "Compito spostato in corso"
@@ -359,7 +357,7 @@ function MaterialPage() {
     .filter((chunk) => chunk.includes("Allegato:"))
     .map((chunk) => {
       const match = chunk.match(/Allegato:\s*([^\]]+)/);
-      return match ? match[1].trim() : "Documento allegato";
+      return match?.[1]?.trim() || "Documento allegato";
     });
 
   return (
@@ -539,9 +537,9 @@ function MaterialPage() {
               <ul className="mt-2 space-y-2">
                 {tasks.map((task) => {
                   const status =
-                    TASK_STATUS[task.status] ?? TASK_STATUS.todo;
+                    TASK_STATUS[task.status as keyof typeof TASK_STATUS] ?? TASK_STATUS.todo;
 
-                  const isCompleted = task.status === "completed";
+                  const isCompleted = task.status === "done";
 
                   return (
                     <li
