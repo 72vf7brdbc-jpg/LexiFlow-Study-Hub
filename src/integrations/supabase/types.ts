@@ -157,6 +157,56 @@ export type Database = {
         }
         Relationships: []
       }
+      mistakes: {
+        Row: {
+          answer: string | null
+          card_id: string
+          check_after: string | null
+          created_at: string
+          id: string
+          last_wrong_at: string
+          method: string
+          resolved_at: string | null
+          updated_at: string
+          user_id: string
+          wrong_count: number
+        }
+        Insert: {
+          answer?: string | null
+          card_id: string
+          check_after?: string | null
+          created_at?: string
+          id?: string
+          last_wrong_at?: string
+          method: string
+          resolved_at?: string | null
+          updated_at?: string
+          user_id: string
+          wrong_count?: number
+        }
+        Update: {
+          answer?: string | null
+          card_id?: string
+          check_after?: string | null
+          created_at?: string
+          id?: string
+          last_wrong_at?: string
+          method?: string
+          resolved_at?: string | null
+          updated_at?: string
+          user_id?: string
+          wrong_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mistakes_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           cefr_level: string | null
