@@ -169,3 +169,44 @@ export function speakingTopic(
 }
 
 export { wordCount };
+
+/* ------------------------------ Active Recall ----------------------------- */
+
+export type RecallItem = { cardId: string; direction: "it_en" | "en_it"; prompt: string; note?: string | undefined; expected: string };
+
+/** Mostly Italian → English (typed or spoken); every third word English → Italian. */
+export function buildRecallItems(cards: readonly PracticeCard[]): RecallItem[] {
+  return cards.map((c, i) =>
+    i % 3 === 2
+      ? { cardId: c.id, direction: "en_it", prompt: c.term, note: c.example ?? undefined, expected: c.meaning }
+      : { cardId: c.id, direction: "it_en", prompt: c.meaning, note: c.definition ?? undefined, expected: c.term },
+  );
+}
+
+/** Accepted Italian answers: each comma/semicolon/slash alternative of the meaning, without notes in brackets. */
+export function meaningVariants(meaning: string): string {
+  return meaning
+    .replace(/\([^)]*\)/g, " ")
+    .split(/\s*[,;/|]\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(";");
+}
+
+/* --------------------------- Translation Practice ------------------------- */
+
+export type TranslationItem = { cardId: string; direction: "it_en" | "en_it"; english: string };
+
+/** Alternates Italian → English and English → Italian, starting with Italian → English. */
+export function buildTranslationItems(cards: readonly PracticeCard[]): TranslationItem[] {
+  return cards.filter((c) => c.example).map((c, i) => ({ cardId: c.id, direction: i % 2 === 0 ? "it_en" : "en_it", english: c.example ?? "" }));
+}
+
+/* ------------------------ Synonyms & Paraphrasing ------------------------- */
+
+export type SynonymItem = { cardId: string; task: "synonym" | "paraphrase" };
+
+/** Alternates "find a synonym" and "rewrite the sentence"; rewriting needs a lesson example. */
+export function buildSynonymItems(cards: readonly PracticeCard[]): SynonymItem[] {
+  return cards.map((c, i) => ({ cardId: c.id, task: i % 2 === 1 && c.example ? "paraphrase" : "synonym" }));
+}

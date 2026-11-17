@@ -189,3 +189,62 @@ export const statsQuery = queryOptions({
     };
   },
 });
+
+export type ReviewCard = Pick<
+  Card,
+  | "id"
+  | "term"
+  | "meaning"
+  | "definition"
+  | "example"
+  | "cloze"
+  | "kind"
+  | "synonyms"
+  | "collocations"
+  | "phonetic"
+  | "due_at"
+  | "repetitions"
+  | "ease"
+  | "interval_days"
+  | "correct_count"
+  | "incorrect_count"
+  | "material_id"
+>;
+
+export type ReviewMistake = Pick<
+  Tables<"mistakes">,
+  "id" | "card_id" | "method" | "answer" | "wrong_count" | "check_after" | "resolved_at" | "last_wrong_at"
+>;
+
+export type ReviewData = {
+  cards: ReviewCard[];
+  materials: Pick<Material, "id" | "title" | "topic" | "lesson_date">[];
+  mistakes: ReviewMistake[];
+};
+
+/** Everything the Ripasso section needs: the learner's words, lessons and open mistakes. */
+export const reviewDataQuery = queryOptions({
+  queryKey: ["review-data"],
+  queryFn: async (): Promise<ReviewData> => {
+    const [cards, materials, mistakes] = await Promise.all([
+      supabase
+        .from("cards")
+        .select(
+          "id, term, meaning, definition, example, cloze, kind, synonyms, collocations, phonetic, due_at, repetitions, ease, interval_days, correct_count, incorrect_count, material_id",
+        )
+        .order("due_at", { ascending: true })
+        .limit(2000),
+      supabase.from("materials").select("id, title, topic, lesson_date").order("lesson_date", { ascending: false }).limit(500),
+      supabase
+        .from("mistakes")
+        .select("id, card_id, method, answer, wrong_count, check_after, resolved_at, last_wrong_at")
+        .is("resolved_at", null)
+        .limit(2000),
+    ]);
+    if (cards.error) throw cards.error;
+    if (materials.error) throw materials.error;
+    if (mistakes.error) throw mistakes.error;
+    return { cards: cards.data ?? [], materials: materials.data ?? [], mistakes: mistakes.data ?? [] };
+  },
+  staleTime: 15_000,
+});

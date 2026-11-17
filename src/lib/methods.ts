@@ -229,3 +229,11 @@ export function pickSession<T extends PracticeCard>(method: MethodId, pool: read
 export function endOfLocalDay(now: Date = new Date()): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 }
+
+/** AI verdicts that count as a correct answer for the schedule: small slips still count. */
+export function coachCountsAsCorrect(verdict: "correct" | "almost" | "wrong"): boolean {
+  return verdict !== "wrong";
+}
+
+/** Speaking Challenge length options, in seconds. */
+export const SPEAKING_DURATIONS = [60, 120] as const;
