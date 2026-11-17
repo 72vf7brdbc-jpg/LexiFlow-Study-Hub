@@ -3,6 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 
 export const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev";
 export const ANALYSIS_MODEL = "openai/gpt-6-astra";
+export const COACH_MODEL = "openai/gpt-6-astra";
 export const TRANSCRIBE_MODEL = "openai/gpt-transcribe";
 
 const LOVABLE_AIG_RUN_ID_HEADER = "X-Lovable-AIG-Run-ID";
