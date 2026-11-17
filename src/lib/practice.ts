@@ -2,23 +2,119 @@
 // Every exercise is built only from fields of the learner's own cards, which the
 // AI extracted from uploaded lessons: no outside words, synonyms or collocations.
 
-import { learningStatus } from "./srs";
+
+ import { learningStatus } from "./srs";
 
 export type Focus = "due" | "wrong" | "unlearned" | "mixed";
-export type Family = "recall" | "collocations" | "synonyms" | "mixed";
+
+export type PracticeCategory = "Memorizzazione" | "Vocabolario" | "Produzione" | "Consolidamento";
+
+export interface PracticeMethod {
+  id: number;
+  name: string;
+  category: PracticeCategory;
+  description: string;
+  type: string;
+}
+
+export const PRACTICE_CATEGORIES: Record<PracticeCategory, { title: string; methods: PracticeMethod[] }> = {
+  Memorizzazione: {
+    title: "Memorizzazione",
+    methods: [
+      {
+        id: 1,
+        name: "Active Recall",
+        category: "Memorizzazione",
+        description: "Mostra la definizione in italiano o la parola inglese. Scrivi la risposta senza opzioni per testare il recupero attivo dalla memoria.",
+        type: "active_recall",
+      },
+      {
+        id: 2,
+        name: "Spaced Repetition",
+        category: "Memorizzazione",
+        description: "Ripasso basato su livelli con intervalli di 1, 3, 7, 14 e 30 giorni. Se sbagli, la parola torna al livello 1. Vengono mostrate solo le parole in scadenza oggi.",
+        type: "spaced_repetition",
+      },
+      {
+        id: 7,
+        name: "Retrieval Practice",
+        category: "Retrieval",
+        description: "Domande aperte senza suggerimenti e senza rileggere gli appunti. Alla fine vengono mostrate le risposte corrette per la verifica.",
+        type: "retrieval_practice",
+      },
+    ],
+  },
+  Vocabolario: {
+    title: "Vocabolario",
+    methods: [
+      {
+        id: 3,
+        name: "Collocations",
+        category: "Vocabolario",
+        description: "Esercizi mirati a scelta tra abbinare parole, completare l'espressione mancante o rimettere in ordine parole mescolate.",
+        type: "collocations",
+      },
+      {
+        id: 8,
+        name: "Contextual Learning",
+        category: "Vocabolario",
+        description: "Analizza la frase con la parola nuova: deduci il significato dal contesto, indica il registro (formale, informale, neutro) e riusa la parola in un nuovo contesto.",
+        type: "contextual_learning",
+      },
+      {
+        id: 10,
+        name: "Translation Practice",
+        category: "Vocabolario",
+        description: "Frasi di traduzione IT→EN e EN→IT. Il sistema evidenza le traduzioni troppo letterali e propone la forma più naturale.",
+        type: "translation_practice",
+      },
+    ],
+  },
+  Produzione: {
+    title: "Produzione",
+    methods: [
+      {
+        id: 4,
+        name: "Sentence Creation",
+        category: "Produzione",
+        description: "Partendo da una parola, scrivi una frase originale in inglese. L'IA valuta grammatica, significato e naturalezza fornendo feedback.",
+        type: "sentence_creation",
+      },
+      {
+        id: 5,
+        name: "Synonyms & Paraphrasing",
+        category: "Produzione",
+        description: "Esercitati a trovare sinonimi o a riscrivere una frase data utilizzando parole diverse mantenendo lo stesso significato.",
+        type: "synonyms_paraphrasing",
+      },
+      {
+        id: 6,
+        name: "Speaking Challenge",
+        category: "Produzione",
+        description: "Mostra 3-5 parole e un argomento con un timer di 1-2 minuti. Alla fine effettui l'autovalutazione indicando quali parole hai usato correttamente.",
+        type: "speaking_challenge",
+      },
+    ],
+  },
+  Consolidamento: {
+    title: "Consolidamento",
+    methods: [
+      {
+        id: 9,
+        name: "Error-Based Learning",
+        category: "Consolidamento",
+        description: "Raccoglie le risposte sbagliate da tutti i metodi precedenti e le ripropone con formati di esercizi differenti per verificarne il superamento.",
+        type: "error_based_learning",
+      },
+    ],
+  },
+};
 
 export const FOCUS_OPTIONS: { id: Focus; label: string; hint: string }[] = [
-  { id: "due", label: "Da ripassare oggi", hint: "Le schede in scadenza secondo il calendario" },
-  { id: "wrong", label: "Solo gli errori", hint: "Le parole che hai sbagliato almeno una volta" },
-  { id: "unlearned", label: "Non ancora apprese", hint: "Tutto ciò che non è ancora «Appreso»" },
-  { id: "mixed", label: "Sessione mista", hint: "Un po' di tutto, in ordine sempre diverso" },
-];
-
-export const FAMILY_OPTIONS: { id: Family; label: string; hint: string }[] = [
-  { id: "mixed", label: "Mix di esercizi", hint: "Alterna tutte le tipologie disponibili" },
-  { id: "recall", label: "Active Recall", hint: "Definizione → parola, parola → significato, frasi da completare" },
-  { id: "collocations", label: "Collocations & Expressions", hint: "Abbina, completa e ricostruisci le espressioni" },
-  { id: "synonyms", label: "Synonyms & Paraphrasing", hint: "Sinonimi e sostituzioni presenti nelle lezioni" },
+  { id: "due", label: "Da ripassare oggi", hint: "Le schede in scadenza secondo il calendario (Intervalli SRS)" },
+  { id: "wrong", label: "Solo gli errori", hint: "Le parole che hai sbagliato (Error-Based Learning)" },
+  { id: "unlearned", label: "Non ancora apprese", hint: "Tutto ciò che non è ancora completato" },
+  { id: "mixed", label: "Sessione mista", hint: "Un mix di esercizi da tutte le categorie" },
 ];
 
 export type PracticeCard = {
@@ -49,7 +145,6 @@ export function filterByFocus<T extends PracticeCard>(cards: readonly T[], focus
   return [...cards];
 }
 
-/** Picks the session: urgent and difficult cards first, with jitter so the order changes every time. */
 export function selectSessionCards<T extends PracticeCard>(
   cards: readonly T[],
   focus: Focus,
@@ -73,6 +168,16 @@ export function selectSessionCards<T extends PracticeCard>(
 }
 
 export type ExerciseKind =
+  | "active_recall"
+  | "spaced_repetition"
+  | "collocations"
+  | "sentence_creation"
+  | "synonyms_paraphrasing"
+  | "speaking_challenge"
+  | "retrieval_practice"
+  | "contextual_learning"
+  | "error_based_learning"
+  | "translation_practice"
   | "meaning_to_term"
   | "definition_to_term"
   | "term_to_meaning"
@@ -84,24 +189,27 @@ export type ExerciseKind =
   | "swap_in_sentence";
 
 export const KIND_LABEL: Record<ExerciseKind, string> = {
+  active_recall: "Active Recall",
+  spaced_repetition: "Spaced Repetition (SRS)",
+  collocations: "Collocations & Expressions",
+  sentence_creation: "Sentence Creation",
+  synonyms_paraphrasing: "Synonyms & Paraphrasing",
+  speaking_challenge: "Speaking Challenge",
+  retrieval_practice: "Retrieval Practice",
+  contextual_learning: "Contextual Learning",
+  error_based_learning: "Error-Based Learning",
+  translation_practice: "Translation Practice",
   meaning_to_term: "Come si dice in inglese?",
   definition_to_term: "Quale parola corrisponde alla definizione?",
   term_to_meaning: "Che cosa significa?",
   cloze: "Completa la frase",
   collocation_gap: "Completa l'espressione",
   collocation_choice: "Scegli la parola giusta",
-  synonym_of: "Scrivi un sinonimo visto a lezione",
-  term_from_synonym: "Quale parola della lezione ha lo stesso significato?",
-  swap_in_sentence: "Sostituisci con un'espressione equivalente",
+  synonym_of: "Scrivi un sinonimo",
+  term_from_synonym: "Parola corrispondente al sinonimo",
+  swap_in_sentence: "Sostituisci con espressione equivalente",
 };
 
-const FAMILY_KINDS: Record<Exclude<Family, "mixed">, ExerciseKind[]> = {
-  recall: ["meaning_to_term", "definition_to_term", "term_to_meaning", "cloze"],
-  collocations: ["collocation_gap", "collocation_choice", "definition_to_term"],
-  synonyms: ["synonym_of", "term_from_synonym", "swap_in_sentence"],
-};
-
-/** Finds `term` inside `text` (case-insensitive, whole words) and splits around it. */
 export function splitAround(text: string, term: string): { before: string; match: string; after: string } | null {
   const t = term.trim();
   if (!t) return null;
@@ -118,156 +226,202 @@ function collocationsWithTerm(card: PracticeCard): string[] {
   return card.collocations.filter((c) => c.trim().toLowerCase() !== card.term.trim().toLowerCase() && splitAround(c, card.term));
 }
 
-export function kindsFor(card: PracticeCard, family: Family, pool: readonly PracticeCard[] = []): ExerciseKind[] {
-  const families = family === "mixed" ? (["recall", "collocations", "synonyms"] as const) : ([family] as const);
+export function kindsFor(card: PracticeCard, methodType: string, pool: readonly PracticeCard[] = []): ExerciseKind[] {
   const out = new Set<ExerciseKind>();
   const hasColl = collocationsWithTerm(card).length > 0;
-  const isExpression = card.kind === "phrase" || /\s/.test(card.term.trim());
-  for (const f of families) {
-    for (const k of FAMILY_KINDS[f]) {
-      if (k === "definition_to_term" && !card.definition) continue;
-      if (k === "definition_to_term" && f === "collocations" && !isExpression) continue;
-      if (k === "cloze" && !(card.cloze && /_{3,}/.test(card.cloze))) continue;
-      if (k === "collocation_gap" && !hasColl) continue;
-      if (k === "collocation_choice" && (!hasColl || pool.filter((p) => p.id !== card.id).length < 2)) continue;
-      if ((k === "synonym_of" || k === "term_from_synonym") && card.synonyms.length === 0) continue;
-      if (k === "swap_in_sentence" && !(card.synonyms.length > 0 && card.example && splitAround(card.example, card.term))) continue;
-      out.add(k);
-    }
-  }
-  return [...out];
-}
 
-export function hasFamilyContent(card: PracticeCard, family: Family, pool: readonly PracticeCard[] = []): boolean {
-  return kindsFor(card, family, pool).length > 0;
+  switch (methodType) {
+    case "active_recall":
+      out.add("active_recall");
+      if (card.definition) out.add("definition_to_term");
+      out.add("meaning_to_term");
+      break;
+    case "spaced_repetition":
+      out.add("spaced_repetition");
+      out.add("term_to_meaning");
+      break;
+    case "collocations":
+      if (hasColl) out.add("collocation_gap");
+      if (hasColl && pool.filter((p) => p.id !== card.id).length >= 2) out.add("collocation_choice");
+      out.add("collocations");
+      break;
+    case "sentence_creation":
+      out.add("sentence_creation");
+      break;
+    case "synonyms_paraphrasing":
+      if (card.synonyms.length > 0) {
+        out.add("synonym_of");
+        out.add("swap_in_sentence");
+      }
+      out.add("synonyms_paraphrasing");
+      break;
+    case "speaking_challenge":
+      out.add("speaking_challenge");
+      break;
+    case "retrieval_practice":
+      out.add("retrieval_practice");
+      break;
+    case "contextual_learning":
+      out.add("contextual_learning");
+      break;
+    case "error_based_learning":
+      out.add("error_based_learning");
+      break;
+    case "translation_practice":
+      out.add("translation_practice");
+      break;
+    default:
+      out.add("meaning_to_term");
+      break;
+  }
+
+  return [...out];
 }
 
 export type Exercise = {
   kind: ExerciseKind;
   cardId: string;
   instruction: string;
-  /** Main text shown on the card. */
   prompt: string;
-  /** Sentence with a gap: before ___ after. */
   gap?: { before: string; after: string } | undefined;
-  /** Sentence with a highlighted expression to replace. */
   highlight?: { before: string; word: string; after: string } | undefined;
-  /** Secondary line under the prompt. */
   note?: string | undefined;
-  /** Accepted answers, all taken from the card. */
   answers: string[];
-  /** Solution shown after answering. */
   solution: string;
   choices?: string[] | undefined;
-  /** The learner judges their own recall (no typing). */
   selfGraded?: boolean | undefined;
+  subMode?: "match" | "gap" | "unscramble" | undefined;
+  scrambledWords?: string[] | undefined;
+  registerOptions?: string[] | undefined;
+  timerSeconds?: number | undefined;
+  speakingWords?: string[] | undefined;
 };
 
 export function buildExercise(card: PracticeCard, kind: ExerciseKind, pool: readonly PracticeCard[] = [], rng: Rng = Math.random): Exercise {
-  const base = { kind, cardId: card.id, instruction: KIND_LABEL[kind] };
+  const base = { kind, cardId: card.id, instruction: KIND_LABEL[kind] || "Esercizio" };
   switch (kind) {
-    case "definition_to_term":
-      return { ...base, prompt: card.definition ?? card.meaning, answers: [card.term], solution: card.term };
-    case "term_to_meaning":
-      return { ...base, prompt: card.term, note: card.example ?? undefined, answers: [card.meaning], solution: card.meaning, selfGraded: true };
-    case "cloze": {
-      const parts = (card.cloze ?? "").split(/_{3,}/);
+    case "active_recall":
       return {
         ...base,
-        prompt: card.cloze ?? "",
-        gap: { before: parts[0] ?? "", after: parts.slice(1).join("_____") },
-        note: `Significato: ${card.meaning}`,
+        prompt: card.definition ?? card.meaning,
+        note: "Scrivi la risposta corretta senza opzioni di supporto.",
         answers: [card.term],
         solution: card.term,
       };
-    }
-    case "collocation_gap":
-    case "collocation_choice": {
-      const coll = pick(collocationsWithTerm(card), rng) ?? card.term;
-      const split = splitAround(coll, card.term);
-      const ex: Exercise = {
-        ...base,
-        prompt: coll,
-        gap: { before: split?.before ?? "", after: split?.after ?? "" },
-        note: `Significato: ${card.meaning}`,
-        answers: [card.term],
-        solution: coll,
-      };
-      if (kind === "collocation_choice") {
-        const distractors = shuffle(
-          pool.filter((p) => p.id !== card.id && p.term.toLowerCase() !== card.term.toLowerCase()).map((p) => p.term),
-          rng,
-        ).slice(0, 3);
-        ex.choices = shuffle([card.term, ...distractors], rng);
-      }
-      return ex;
-    }
-    case "synonym_of":
+    case "spaced_repetition": {
+      const intervals = [1, 3, 7, 14, 30];
+      const currentLevel = card.repetitions < intervals.length ? card.repetitions : intervals.length - 1;
       return {
         ...base,
         prompt: card.term,
-        note: `Significato: ${card.meaning}`,
-        answers: [...card.synonyms],
-        solution: card.synonyms.join(" · "),
+        note: `Livello SRS attuale: ${currentLevel + 1} (Intervallo: ${intervals[currentLevel]} giorni). Se sbagli, tornerai al livello 1.`,
+        answers: [card.meaning],
+        solution: card.meaning,
+        selfGraded: true,
       };
-    case "term_from_synonym": {
-      const syn = pick(card.synonyms, rng) ?? card.synonyms[0] ?? "";
-      return { ...base, prompt: syn, note: `Significato: ${card.meaning}`, answers: [card.term], solution: card.term };
     }
-    case "swap_in_sentence": {
-      const split = splitAround(card.example ?? "", card.term);
+    case "retrieval_practice":
       return {
         ...base,
-        prompt: card.example ?? "",
-        highlight: split ? { before: split.before, word: split.match, after: split.after } : undefined,
-        note: "Scrivi solo l'espressione che sostituisce quella evidenziata.",
-        answers: [...card.synonyms],
-        solution: card.synonyms.join(" · "),
+        prompt: `Domanda aperta (Retrieval): Spiega o scrivi tutto ciò che ricordi associato a: "${card.term}" (${card.meaning}).`,
+        note: "Nessun suggerimento disponibile. Alla fine potrai confrontare la tua risposta.",
+        answers: [card.term, card.meaning],
+        solution: `Termine: ${card.term} | Definizione: ${card.definition ?? card.meaning}`,
+      };
+    case "collocations": {
+      const modes = ["gap", "match", "unscramble"] as const;
+      const chosenMode = modes[Math.floor(rng() * modes.length)] ?? "gap";
+      const coll = pick(collocationsWithTerm(card), rng) ?? card.term;
+      const split = splitAround(coll, card.term);
+      
+      let scrambled: string[] | undefined = undefined;
+      if (chosenMode === "unscramble") {
+        scrambled = shuffle(coll.split(/\s+/), rng);
+      }
+
+      return {
+        ...base,
+        prompt: coll,
+        subMode: chosenMode,
+        gap: split ? { before: split.before, after: split.after } : undefined,
+        scrambledWords: scrambled,
+        note: chosenMode === "match" ? "Abbina la parola corretta all'espressione." : chosenMode === "unscramble" ? "Rimetti in ordine le parole mescolate." : "Completa l'espressione mancante.",
+        answers: [card.term],
+        solution: coll,
       };
     }
-    case "meaning_to_term":
+    case "contextual_learning":
+      return {
+        ...base,
+        prompt: card.example ?? `Contesto con la parola chiave: ${card.term}`,
+        registerOptions: ["Formale", Informale, "Neutro"],
+        note: "Deduci il significato dal contesto, seleziona il registro corretto e prova a usare la parola in un nuovo contesto.",
+        answers: [card.term],
+        solution: `Parola: ${card.term} - Significato: ${card.meaning}`,
+      };
+    case "translation_practice": {
+      const isItToEn = rng() > 0.5;
+      return {
+        ...base,
+        prompt: isItToEn ? `Traduci in inglese: "${card.meaning}"` : `Traduci in italiano: "${card.term}"`,
+        note: "Evita traduzioni troppo letterali; l'IA valuterà la forma più naturale.",
+        answers: isItToEn ? [card.term] : [card.meaning],
+        solution: isItToEn ? card.term : card.meaning,
+      };
+    }
+    case "sentence_creation":
+      return {
+        ...base,
+        prompt: `Parola assegnata: "${card.term}"`,
+        note: `Significato: ${card.meaning}. Scrivi una frase originale in inglese. L'IA valuterà grammatica e naturalezza.`,
+        answers: [card.term],
+        solution: card.example ?? `Esempio con ${card.term}`,
+      };
+    case "synonyms_paraphrasing":
+      return {
+        ...base,
+        prompt: `Trova sinonimi o parafrasa la frase per: "${card.term}"`,
+        note: `Sinonimi registrati: ${card.synonyms.join(", ") || "Nessuno"}`,
+        answers: card.synonyms.length > 0 ? [...card.synonyms] : [card.term],
+        solution: card.synonyms.join(" · ") || card.term,
+      };
+    case "speaking_challenge": {
+      const randomWords = shuffle(pool.map((p) => p.term), rng).slice(0, 4);
+      return {
+        ...base,
+        prompt: `Argomento di discussione libera`,
+        timerSeconds: 90, // 1 minuto e mezzo
+        speakingWords: [card.term, ...randomWords.slice(0, 3)],
+        note: "Parla ad alta voce usando le parole chiave fornite per 1-2 minuti. Alla fine fai l'autovalutazione.",
+        answers: [card.term],
+        solution: "Autovalutazione completata",
+      };
+    }
+    case "error_based_learning":
+      return {
+        ...base,
+        prompt: `Recupero errore passato: "${card.term}" (${card.meaning})`,
+        note: "Questa parola è stata precedentemente sbagliata. Dimostra di averla superata.",
+        answers: [card.term],
+        solution: card.term,
+      };
     default:
       return {
         ...base,
         kind: "meaning_to_term",
         instruction: KIND_LABEL.meaning_to_term,
         prompt: card.meaning,
-        note: card.definition ?? undefined,
         answers: [card.term],
         solution: card.term,
       };
   }
 }
 
-/** Chooses an exercise type for a card, avoiding the type it just had. */
-export function nextExercise(card: PracticeCard, family: Family, pool: readonly PracticeCard[], attempt: number, rng: Rng = Math.random, previous?: ExerciseKind): Exercise {
-  let kinds = kindsFor(card, family, pool);
-  if (kinds.length === 0) kinds = ["meaning_to_term"];
-  // A retry after a mistake uses a typed exercise so the learner actively produces the answer.
-  if (attempt > 0) kinds = kinds.filter((k) => k !== "term_to_meaning" && k !== "collocation_choice").concat();
+export function nextExercise(card: PracticeCard, methodType: string, pool: readonly PracticeCard[], attempt: number, rng: Rng = Math.random, previous?: ExerciseKind): Exercise {
+  let kinds = kindsFor(card, methodType, pool);
   if (kinds.length === 0) kinds = ["meaning_to_term"];
   const options = kinds.length > 1 && previous ? kinds.filter((k) => k !== previous) : kinds;
   return buildExercise(card, pick(options, rng) ?? "meaning_to_term", pool, rng);
-}
-
-export type MatchPair = { cardId: string; left: { before: string; after: string }; right: string; full: string };
-
-/** "Abbina" round: up to 4 collocations with the lesson word removed, to pair with the words. */
-export function buildMatchRound(cards: readonly PracticeCard[], rng: Rng = Math.random): MatchPair[] {
-  const pairs: MatchPair[] = [];
-  const used = new Set<string>();
-  for (const c of shuffle([...cards], rng)) {
-    const key = c.term.toLowerCase();
-    if (used.has(key)) continue;
-    const coll = pick(collocationsWithTerm(c), rng);
-    if (!coll) continue;
-    const split = splitAround(coll, c.term);
-    if (!split) continue;
-    used.add(key);
-    pairs.push({ cardId: c.id, left: { before: split.before, after: split.after }, right: c.term, full: coll });
-    if (pairs.length === 4) break;
-  }
-  return pairs.length >= 3 ? pairs : [];
 }
 
 export function shuffle<T>(arr: readonly T[], rng: Rng = Math.random): T[] {
