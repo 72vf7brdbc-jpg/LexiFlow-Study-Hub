@@ -3,7 +3,7 @@
 // AI extracted from uploaded lessons: no outside words, synonyms or collocations.
 
 
- import { learningStatus } from "./srs";
+import { learningStatus } from "./srs";
 
 export type Focus = "due" | "wrong" | "unlearned" | "mixed";
 
