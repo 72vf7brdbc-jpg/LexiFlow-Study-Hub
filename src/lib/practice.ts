@@ -1,4 +1,3 @@
-
 // Exercise builder for the Ripasso section.
 // Exercises are generated exclusively from the learner's own cards.
 // No external vocabulary, synonyms or collocations are introduced.
@@ -69,25 +68,18 @@ export interface Exercise {
   cardId: string;
   instruction: string;
   prompt: string;
-  gap?: {
-    before: string;
-    after: string;
-  };
-  highlight?: {
-    before: string;
-    word: string;
-    after: string;
-  };
-  note?: string;
+  gap?: { before: string; after: string } | undefined;
+  highlight?: { before: string; word: string; after: string } | undefined;
+  note?: string | undefined;
   answers: string[];
   solution: string;
-  choices?: string[];
-  selfGraded?: boolean;
-  subMode?: "match" | "gap" | "unscramble";
-  scrambledWords?: string[];
-  registerOptions?: string[];
-  timerSeconds?: number;
-  speakingWords?: string[];
+  choices?: string[] | undefined;
+  selfGraded?: boolean | undefined;
+  subMode?: "match" | "gap" | "unscramble" | undefined;
+  scrambledWords?: string[] | undefined;
+  registerOptions?: string[] | undefined;
+  timerSeconds?: number | undefined;
+  speakingWords?: string[] | undefined;
 }
 
 type Rng = () => number;

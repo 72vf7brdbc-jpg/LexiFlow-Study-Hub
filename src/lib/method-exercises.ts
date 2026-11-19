@@ -2,7 +2,7 @@
 // Everything is built from the learner's own cards (lesson content only).
 
 import type { MethodId } from "./methods";
-import { buildExercise, kindsFor, shuffle, splitAround, type Exercise, type ExerciseKind, type PracticeCard } from "./practice";
+import { buildExercise, shuffle, splitAround, type Exercise, type ExerciseKind, type PracticeCard } from "./practice";
 
 type Rng = () => number;
 
@@ -137,8 +137,12 @@ export function withCloze(card: PracticeCard): PracticeCard {
 
 export function errorKindsFor(card: PracticeCard, origin: string, pool: readonly PracticeCard[]): ExerciseKind[] {
   const c = withCloze(card);
-  const available = kindsFor(c, "mixed", pool).filter((k) => ERROR_KINDS.includes(k));
-  if (!available.includes("meaning_to_term")) available.push("meaning_to_term");
+  const available: ExerciseKind[] = ["meaning_to_term"];
+  if (c.cloze && /_{3,}/.test(c.cloze)) available.push("cloze");
+  if (c.definition) available.push("definition_to_term");
+  if (c.collocations.some((x) => x.trim().toLowerCase() !== c.term.trim().toLowerCase() && splitAround(x, c.term))) available.push("collocation_gap");
+  if (c.synonyms.length > 0) available.push("term_from_synonym");
+  void pool;
   const avoid = ORIGIN_KIND[origin as MethodId];
   const different = available.filter((k) => k !== avoid);
   return different.length ? different : available;

@@ -13,6 +13,7 @@ import type { ReviewCard } from "@/lib/queries";
 import { recordReview } from "@/lib/review.functions";
 import { speakEnglish } from "@/lib/speak";
 import { toLocalDateString, xpForAnswer } from "@/lib/streak";
+import { splitAround } from "@/lib/practice";
 import { cn } from "@/lib/utils";
 
 export type AnswerMode = "typed" | "voice";
@@ -25,26 +26,30 @@ export function useReviewRecorder(method: MethodId) {
   const [streak, setStreak] = useState<number | null>(null);
   const [log, setLog] = useState<AnswerLog[]>([]);
 
+  // Answers are saved one after the other so XP and streak never overwrite each other.
+  const chain = useRef<Promise<void>>(Promise.resolve());
   const save = useCallback(
     (cardId: string, correct: boolean, mode: AnswerMode, answer: string) => {
       setXp((x) => x + xpForAnswer(correct, mode));
       setLog((l) => [...l, { cardId, correct }]);
-      record({
-        data: {
-          cardId,
-          correct,
-          mode,
-          answer: answer.slice(0, 500),
-          localDate: toLocalDateString(),
-          method,
-          dueBefore: endOfLocalDay().toISOString(),
-        },
-      })
+      const payload = {
+        cardId,
+        correct,
+        mode,
+        answer: answer.slice(0, 500),
+        localDate: toLocalDateString(),
+        method,
+        dueBefore: endOfLocalDay().toISOString(),
+      };
+      chain.current = chain.current
+        .then(() => record({ data: payload }))
         .then((res) => {
           if (res.ok) setStreak(res.streak);
           else toast.error(res.message);
         })
-        .catch(() => toast.error("Risposta non salvata: controlla la connessione."));
+        .catch(() => {
+          toast.error("Risposta non salvata: controlla la connessione.");
+        });
     },
     [record, method],
   );
@@ -423,3 +428,27 @@ export function PromptCard({ eyebrow, children, aside }: { eyebrow: string; chil
 }
 
 export { xpForAnswer };
+
+/** A sentence with the lesson word highlighted. */
+export function Highlighted({ text, term }: { text: string; term: string }) {
+  const split = splitAround(text, term);
+  if (!split) return <>{text}</>;
+  return (
+    <>
+      {split.before}
+      <mark className="rounded-md bg-gold/30 px-1 text-foreground">{split.match}</mark>
+      {split.after}
+    </>
+  );
+}
+
+/** A sentence with a blank to fill. */
+export function GapText({ before, after }: { before: string; after: string }) {
+  return (
+    <>
+      {before}
+      <span className="mx-1 inline-block min-w-[4.5rem] border-b-2 border-dashed border-primary align-baseline">&nbsp;</span>
+      {after}
+    </>
+  );
+}
