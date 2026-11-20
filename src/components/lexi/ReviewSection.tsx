@@ -20,6 +20,7 @@ type Props = { data: ReviewData; method?: MethodId | undefined; material?: strin
 export default function ReviewSection({ data, method, material, onSelect, onClearMaterial }: Props) {
   const [run, setRun] = useState<{ method: MethodId; cards: ReviewCard[]; data: ReviewData; key: number } | null>(null);
   const [grammarOpen, setGrammarOpen] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
   if (grammarOpen) return <GrammarWorkspace material={material} onClose={() => setGrammarOpen(false)} />;
   const cards = material ? data.cards.filter((c) => c.material_id === material) : data.cards;
   const lesson = data.materials.find((m) => m.id === material);
@@ -30,7 +31,10 @@ export default function ReviewSection({ data, method, material, onSelect, onClea
   }
   if (method) {
     const info = methodInfo(method);
-    const pool = poolFor(method, cards, { mistakes: data.mistakes });
+    const lessonsWithCards = data.materials.filter((m) => cards.some((c) => c.material_id === m.id));
+    const scoped = picked.length ? cards.filter((c) => picked.includes(c.material_id)) : cards;
+    const pool = poolFor(method, scoped, { mistakes: data.mistakes });
+    const toggle = (id: string) => setPicked((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
     const Icon = ICONS[method];
     return <div className="mx-auto max-w-2xl pb-12 animate-rise">
       <Button variant="ghost" onClick={exit}><ArrowLeft /> Tutti i metodi</Button>
@@ -38,7 +42,8 @@ export default function ReviewSection({ data, method, material, onSelect, onClea
       <h1 className="mt-5 font-display text-3xl font-medium break-words">{info.name}</h1>
       <p className="mt-4 text-base leading-relaxed text-muted-foreground">{info.intro}</p>
       <ol className="mt-7 divide-y divide-border border-y border-border">{info.steps.map((step, i) => <li className="flex items-center gap-4 py-4" key={step}><span className="font-mono text-sm text-camel">0{i + 1}</span><span>{step}</span></li>)}</ol>
-      {pool.length >= info.min ? <div className="mt-7 flex flex-wrap items-center justify-between gap-4"><span className="text-sm text-muted-foreground">{Math.min(pool.length, info.size)} parole{lesson ? ` · ${lesson.title}` : " dalle tue lezioni"}</span><Button size="lg" onClick={() => setRun({ method, cards: pickSession(method, pool), data, key: Date.now() })}>Inizia <ArrowRight /></Button></div> : <div className="mt-7 space-y-4"><p className="text-muted-foreground">{info.needs}</p>{cards.length === 0 && <Button asChild><Link to="/upload">Carica una lezione</Link></Button>}</div>}
+      {lessonsWithCards.length > 1 && <section className="mt-7" aria-label="Scegli le lezioni"><div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="font-display text-lg font-medium">Quali lezioni vuoi ripassare?</h2>{picked.length > 0 && <Button size="sm" variant="ghost" onClick={() => setPicked([])}>Tutte</Button>}</div><p className="mt-1 text-sm text-muted-foreground">{picked.length ? `${picked.length} selezionate` : "Nessuna scelta: uso tutte le lezioni."}</p><div className="mt-3 flex flex-wrap gap-2">{lessonsWithCards.map((m) => { const on = picked.includes(m.id); const n = cards.filter((c) => c.material_id === m.id).length; return <Button key={m.id} size="sm" variant={on ? "default" : "outline"} aria-pressed={on} onClick={() => toggle(m.id)} className="h-auto max-w-full whitespace-normal rounded-full py-2 text-left"><span className="break-words">{m.title}</span><span className="font-mono text-xs opacity-70">{n}</span></Button>; })}</div></section>}
+      {pool.length >= info.min ? <div className="mt-7 flex flex-wrap items-center justify-between gap-4"><span className="text-sm text-muted-foreground">{Math.min(pool.length, info.size)} parole{picked.length ? ` da ${picked.length} ${picked.length === 1 ? "lezione" : "lezioni"}` : lesson ? ` · ${lesson.title}` : " dalle tue lezioni"}</span><Button size="lg" onClick={() => setRun({ method, cards: pickSession(method, pool), data, key: Date.now() })}>Inizia <ArrowRight /></Button></div> : <div className="mt-7 space-y-4"><p className="text-muted-foreground">{info.needs}</p>{cards.length === 0 && <Button asChild><Link to="/upload">Carica una lezione</Link></Button>}</div>}
     </div>;
   }
   const pendingTasks = data.tasks.filter((t) => t.status !== "done" && (!material || t.material_id === material));
