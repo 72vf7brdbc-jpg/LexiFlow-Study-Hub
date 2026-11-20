@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 export function GrammarBanner({ onOpen }: { onOpen: () => void }) {
   const { data } = useSuspenseQuery(grammarQuery);
-  return <section aria-label="Grammatica" className="mb-5 border-y border-grammar bg-grammar px-5 py-6 text-grammar-foreground sm:px-7">
+  return <section aria-label="Grammatica" className="mb-5 rounded-lg border border-grammar bg-grammar px-5 py-6 text-grammar-foreground sm:px-7">
     <div className="flex flex-wrap items-center justify-between gap-5">
       <div className="flex min-w-0 items-start gap-4"><GraduationCap className="mt-1 size-8 shrink-0" /><div><p className="font-mono text-xs uppercase">Il tuo quaderno di regole</p><h2 className="mt-1 font-display text-3xl font-medium">Grammatica</h2><p className="mt-2 text-sm">{data.rules.length ? `${data.rules.length} ${data.rules.length === 1 ? "argomento" : "argomenti"} · Teoria e pratica` : "Teoria e pratica · Dalle lezioni e dai tuoi dubbi"}</p></div></div>
       <Button variant="outline" onClick={onOpen} className="border-grammar-foreground/40 bg-transparent text-grammar-foreground hover:bg-grammar-foreground/15 hover:text-grammar-foreground">Apri il quaderno <ArrowRight /></Button>

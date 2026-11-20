@@ -45,7 +45,7 @@ export default function ReviewSection({ data, method, material, onSelect, onClea
   const waiting = data.mistakes.filter((m) => mistakePhase(m) === "waiting").length;
   return <div className="mx-auto max-w-5xl pb-12 animate-rise">
     <GrammarBanner onOpen={() => setGrammarOpen(true)} />
-    <section aria-label="Da fare" className="mb-8 border-y border-camel bg-gold/20 px-4 py-5 sm:px-6">
+    <section aria-label="Da fare" className="mb-8 rounded-lg border border-camel bg-gold/20 px-4 py-5 sm:px-6">
       <div className="flex items-center justify-between gap-4"><h2 className="flex items-center gap-2 font-display text-xl font-medium"><ClipboardCheck className="size-5 text-accent-foreground" /> Da fare</h2><span className="font-mono text-xs text-accent-foreground">{pendingTasks.length} in sospeso</span></div>
       {pendingTasks.length ? <ul className="mt-3 divide-y divide-camel/40">{pendingTasks.map((task) => <li key={task.id}><Button asChild variant="ghost" className="h-auto w-full justify-between rounded-none px-0 py-3 text-left whitespace-normal"><Link to="/library/$materialId" params={{ materialId: task.material_id }}><span className="min-w-0"><span className="block font-semibold break-words">{task.description}</span><span className="mt-1 block text-xs text-muted-foreground">{data.materials.find((m) => m.id === task.material_id)?.title} · {task.status === "in_progress" ? "In corso" : "Da iniziare"}{task.due_date ? ` · ${new Date(`${task.due_date}T12:00:00`).toLocaleDateString("it-IT")}` : ""}</span></span><ArrowRight className="shrink-0" /></Link></Button></li>)}</ul> : <p className="mt-2 text-sm text-accent-foreground">Nessun compito in sospeso.</p>}
     </section>
