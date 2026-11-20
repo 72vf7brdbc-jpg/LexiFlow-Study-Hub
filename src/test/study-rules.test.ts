@@ -131,14 +131,17 @@ describe("distinct review methods", () => {
     expect(poolFor("sentence_creation", [WORD, tomorrow], { now: NOW, dayEnd })).toHaveLength(2);
   });
   it("correct extra practice does not advance an already scheduled word", () => {
-    expect(reviewSchedule(WORD, true, false, NOW)).toBeNull();
+    expect(reviewSchedule({ ...WORD, ease: 2.5 }, true, false, NOW)).toBeNull();
   });
   it("collocations build match, gap and order using only lesson expressions", () => {
     const cards = [WORD, { ...WORD, id: "w2", term: "choice", meaning: "scelta", collocations: ["make a choice"], example: "I made a choice today." }, { ...WORD, id: "w3", term: "effort", meaning: "sforzo", collocations: ["make an effort"], example: "I made an effort today." }];
     const rounds = buildCollocationRounds(cards, () => 0);
     expect(new Set(rounds.map((r) => r.type))).toEqual(new Set(["match", "gap", "order"]));
     for (const round of rounds) {
-      if (round.type === "match") expect(round.pairs.map((p) => p.right).sort()).toEqual(["choice", "decision", "effort"]);
+      if (round.type === "match") {
+        expect(round.pairs.map((p) => p.right).sort()).toEqual(["choice", "decision", "effort"]);
+        expect(new Set(round.pairs.map((p) => p.left)).size).toBe(3);
+      }
       else expect(cards.some((c) => c.collocations.includes(round.full) || c.example === round.full)).toBe(true);
     }
   });

@@ -53,7 +53,7 @@ export function CollocationsSession({ cards, onExit, onRestart }: SessionProps) 
           pairs={round.pairs}
           mode={round.mode}
           onDone={(results) => {
-            for (const r of results) rec.save(r.cardId, r.correct, "typed", "abbinamento");
+            for (const r of results) rec.save(r.cardId, r.correct, "typed", r.answer);
             next();
           }}
         />
@@ -82,13 +82,14 @@ export function CollocationsSession({ cards, onExit, onRestart }: SessionProps) 
   );
 }
 
-function MatchRound({ pairs, mode, onDone }: { pairs: MatchPair[]; mode: "expression" | "meaning"; onDone: (r: { cardId: string; correct: boolean }[]) => void }) {
+function MatchRound({ pairs, mode, onDone }: { pairs: MatchPair[]; mode: "expression" | "meaning"; onDone: (r: { cardId: string; correct: boolean; answer: string }[]) => void }) {
   const [left] = useState(() => shuffle(pairs.map((_, i) => i)));
   const [right] = useState(() => shuffle(pairs.map((_, i) => i)));
   const [selLeft, setSelLeft] = useState<number | null>(null);
   const [selRight, setSelRight] = useState<number | null>(null);
   const [matched, setMatched] = useState<Set<number>>(new Set());
   const [missed, setMissed] = useState<Set<number>>(new Set());
+  const [wrongAnswers, setWrongAnswers] = useState<Map<number, string>>(new Map());
   const [flash, setFlash] = useState<number | null>(null);
   const finished = matched.size === pairs.length;
 
@@ -98,6 +99,7 @@ function MatchRound({ pairs, mode, onDone }: { pairs: MatchPair[]; mode: "expres
       setMatched((m) => new Set(m).add(l));
     } else {
       setMissed((m) => new Set(m).add(l));
+      setWrongAnswers((m) => new Map(m).set(l, `${pairs[l]?.left ?? ""} → ${pairs[r]?.right ?? ""}`));
       setFlash(l);
       setTimeout(() => setFlash(null), 450);
     }
@@ -155,7 +157,7 @@ function MatchRound({ pairs, mode, onDone }: { pairs: MatchPair[]; mode: "expres
         <ResultPanel
           ok={missed.size === 0}
           heading={missed.size === 0 ? "Tutte giuste al primo colpo!" : "Coppie completate"}
-          onContinue={() => onDone(pairs.map((p, i) => ({ cardId: p.cardId, correct: !missed.has(i) })))}
+          onContinue={() => onDone(pairs.map((p, i) => ({ cardId: p.cardId, correct: !missed.has(i), answer: wrongAnswers.get(i) ?? p.full })))}
         >
           <ul className="space-y-1">
             {pairs.map((p, i) => (
@@ -222,7 +224,7 @@ function OrderRound({ round, onDone }: { round: Extract<CollocationRound, { type
 
   return (
     <>
-      <PromptCard eyebrow="Rimetti in ordine" aside={<SpeakButton text={round.full} />}>
+      <PromptCard eyebrow="Rimetti in ordine">
         <p className="text-sm text-muted-foreground">Tocca le parole nell'ordine giusto. Significato della parola chiave: {round.meaning}</p>
         <div className="mt-4 flex min-h-[3.25rem] flex-wrap gap-2 rounded-xl border border-dashed border-border bg-background/60 p-2.5">
           {chosen.length === 0 && <span className="px-1 py-1.5 text-sm text-muted-foreground/70">La tua frase apparirà qui</span>}

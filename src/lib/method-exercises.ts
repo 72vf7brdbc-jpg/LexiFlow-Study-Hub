@@ -57,11 +57,20 @@ export function buildCollocationRounds(cards: readonly PracticeCard[], rng: Rng 
     const coll = c.collocations.find((x) => x.trim().toLowerCase() !== key && splitAround(x, c.term));
     const split = coll ? splitAround(coll, c.term) : null;
     if (coll && split && exprPairs.length < 4) {
-      exprPairs.push({ cardId: c.id, left: `${split.before}___${split.after}`.trim(), right: split.match, full: coll });
+      const left = `${split.before}___${split.after}`.trim();
+      exprPairs.push({ cardId: c.id, left, right: split.match, full: coll });
     }
     if (meaningPairs.length < 4) meaningPairs.push({ cardId: c.id, left: c.meaning, right: c.term, full: c.term });
   }
-  if (exprPairs.length >= 3) rounds.push({ type: "match", mode: "expression", pairs: exprPairs });
+  if (exprPairs.length >= 3) {
+    // Identical blanks (make a ___) need the saved meaning to identify the pair.
+    const pairs = exprPairs.map((p) => {
+      const duplicate = exprPairs.filter((other) => other.left === p.left).length > 1;
+      const meaning = cards.find((c) => c.id === p.cardId)?.meaning;
+      return duplicate && meaning ? { ...p, left: `${p.left} (${meaning})` } : p;
+    });
+    rounds.push({ type: "match", mode: "expression", pairs });
+  }
   else if (meaningPairs.length >= 3) rounds.push({ type: "match", mode: "meaning", pairs: meaningPairs });
 
   // 2. Alternate "complete" and "reorder" on every word.

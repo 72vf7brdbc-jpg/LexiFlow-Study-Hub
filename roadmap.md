@@ -6,7 +6,9 @@
 - [ ] Carica: registro della lezione (data, argomenti, vocabolario, attività, note), salvataggio del file originale, "solo registro"
 - [ ] Compiti per casa: testo libero → AI li organizza senza inventare, chiede chiarimenti, collega il file
 - [ ] Oggi: banner giorno di lezione + riepilogo compiti / scadenze / prossima lezione
-- [ ] Ripasso: "Da fare" fisso in alto colore acceso, progressi (14 giorni), sessione su misura
-- [ ] Ripasso: collegare tutti i 10 metodi distinti, spiegazioni iniziali e 4 categorie; completare produzione, speaking con autovalutazione e quaderno errori
+- [x] Ripasso: "Da fare" in cima, con colore caldo acceso e collegamenti ai compiti delle lezioni
+- [ ] Ripasso futuro: progressi (14 giorni), sessione su misura
+- [x] Ripasso: tutti i 10 metodi distinti, spiegazioni iniziali e 4 categorie; produzione AI, speaking con autovalutazione e quaderno errori
+- [x] Ripasso: 31 controlli automatici; pagine dei 10 metodi, correzione AI, recupero errori, timer e salvataggi verificati con utente temporaneo; nessun errore di esecuzione e nessuno sforamento sul telefono
 - [ ] Archivio: registro, attività, compiti per lezione; scheda lezione modificabile, apri file
 - [ ] Verifica completa nell'anteprima
