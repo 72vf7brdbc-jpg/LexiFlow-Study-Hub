@@ -22,6 +22,9 @@ export type AnswerLog = { cardId: string; correct: boolean };
 /** Saves each answer (schedule, XP, streak, errors notebook) and keeps the session tally. */
 export function useReviewRecorder(method: MethodId) {
   const record = useServerFn(recordReview);
+  const queryClient = useQueryClient();
+  const [pending, setPending] = useState(0);
+  const [failed, setFailed] = useState(0);
   const [xp, setXp] = useState(0);
   const [streak, setStreak] = useState<number | null>(null);
   const [log, setLog] = useState<AnswerLog[]>([]);
@@ -30,8 +33,7 @@ export function useReviewRecorder(method: MethodId) {
   const chain = useRef<Promise<void>>(Promise.resolve());
   const save = useCallback(
     (cardId: string, correct: boolean, mode: AnswerMode, answer: string) => {
-      setXp((x) => x + xpForAnswer(correct, mode));
-      setLog((l) => [...l, { cardId, correct }]);
+      setPending((n) => n + 1);
       const payload = {
         cardId,
         correct,
@@ -44,17 +46,28 @@ export function useReviewRecorder(method: MethodId) {
       chain.current = chain.current
         .then(() => record({ data: payload }))
         .then((res) => {
-          if (res.ok) setStreak(res.streak);
-          else toast.error(res.message);
+          if (res.ok) {
+            setStreak(res.streak);
+            setXp((x) => x + res.xpEarned);
+            setLog((l) => [...l, { cardId, correct }]);
+          } else {
+            setFailed((n) => n + 1);
+            toast.error(res.message);
+          }
         })
         .catch(() => {
+          setFailed((n) => n + 1);
           toast.error("Risposta non salvata: controlla la connessione.");
+        })
+        .finally(() => {
+          setPending((n) => n - 1);
+          for (const key of ["review-data", "profile", "stats", "material"]) void queryClient.invalidateQueries({ queryKey: [key] });
         });
     },
-    [record, method],
+    [record, method, queryClient],
   );
 
-  return { xp, streak, log, save };
+  return { xp, streak, log, save, pending, failed };
 }
 
 export function SessionHeader({ method, done, total, xp, onExit }: { method: MethodId; done: number; total: number; xp: number; onExit: () => void }) {
@@ -63,14 +76,14 @@ export function SessionHeader({ method, done, total, xp, onExit }: { method: Met
   return (
     <div>
       <div className="flex items-center gap-4">
-        <button
+        <Button variant="ghost"
           onClick={onExit}
           className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           aria-label="Esci dalla sessione"
           title="Esci dalla sessione"
         >
           <X className="size-5" />
-        </button>
+        </Button>
         <div className="h-3 flex-1 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
           <div className="h-full rounded-full bg-primary transition-all duration-500 ease-out" style={{ width: `${Math.max(4, progress * 100)}%` }} />
         </div>
@@ -199,7 +212,7 @@ export function AnswerArea({
 
 function MicButton({ status, onToggle }: { status: "idle" | "recording" | "transcribing"; onToggle: () => void }) {
   return (
-    <button
+    <Button variant="ghost"
       type="button"
       onClick={onToggle}
       disabled={status === "transcribing"}
@@ -210,20 +223,20 @@ function MicButton({ status, onToggle }: { status: "idle" | "recording" | "trans
       )}
     >
       {status === "transcribing" ? <Loader2 className="size-5 animate-spin" /> : status === "recording" ? <Square className="size-4 fill-current" /> : <Mic className="size-5" />}
-    </button>
+    </Button>
   );
 }
 
 export function SpeakButton({ text }: { text: string }) {
   return (
-    <button
+    <Button variant="ghost"
       type="button"
       onClick={() => speakEnglish(text)}
       className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background/60 hover:text-foreground"
       aria-label="Ascolta la pronuncia"
     >
       <Volume2 className="size-4" />
-    </button>
+    </Button>
   );
 }
 
@@ -272,9 +285,9 @@ export function ResultPanel({
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
         {onOverride ? (
-          <button onClick={onOverride} className="text-sm font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+          <Button variant="ghost" onClick={onOverride} className="text-sm font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
             Era giusta
-          </button>
+          </Button>
         ) : (
           <span />
         )}
@@ -338,6 +351,8 @@ export function SessionSummary({
   onExit,
   onRestart,
   extra,
+  pending = 0,
+  failed = 0,
 }: {
   method: MethodId;
   cards: readonly ReviewCard[];
@@ -347,15 +362,9 @@ export function SessionSummary({
   onExit: () => void;
   onRestart: () => void;
   extra?: ReactNode;
+  pending?: number;
+  failed?: number;
 }) {
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    const t = setTimeout(() => {
-      for (const key of ["review-data", "profile", "stats", "material"]) queryClient.invalidateQueries({ queryKey: [key] });
-    }, 800);
-    return () => clearTimeout(t);
-  }, [queryClient]);
-
   const first = new Map<string, boolean>();
   for (const a of log) if (!first.has(a.cardId)) first.set(a.cardId, a.correct);
   const total = first.size;
@@ -378,6 +387,8 @@ export function SessionSummary({
           <SummaryStat icon={<Check className="size-4 text-primary" />} value={`${Math.round(accuracy * 100)}%`} label="Corrette" />
           <SummaryStat icon={<Flame className="size-4 text-burgundy" />} value={streak === null ? "…" : String(streak)} label="Streak" />
         </div>
+        {pending > 0 && <p className="mt-5 flex items-center justify-center gap-2 text-sm text-muted-foreground" role="status"><Loader2 className="size-4 animate-spin" />Salvo {pending} risposte…</p>}
+        {failed > 0 && <p className="mt-5 text-sm text-burgundy" role="alert">{failed} risposte non salvate. Controlla la connessione prima di ripetere la sessione.</p>}
         {extra}
         {hard.length > 0 && (
           <div className="mt-7 text-left">
@@ -392,10 +403,10 @@ export function SessionSummary({
           </div>
         )}
         <div className="mt-8 flex flex-col justify-center gap-2.5 sm:flex-row">
-          <Button size="lg" onClick={onExit}>
+          <Button size="lg" onClick={onExit} disabled={pending > 0}>
             Torna al Ripasso <ArrowRight />
           </Button>
-          <Button size="lg" variant="outline" onClick={onRestart}>
+          <Button size="lg" variant="outline" onClick={onRestart} disabled={pending > 0}>
             <RotateCcw /> Ripeti
           </Button>
         </div>

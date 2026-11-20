@@ -7,6 +7,6 @@
 - [ ] Compiti per casa: testo libero → AI li organizza senza inventare, chiede chiarimenti, collega il file
 - [ ] Oggi: banner giorno di lezione + riepilogo compiti / scadenze / prossima lezione
 - [ ] Ripasso: "Da fare" fisso in alto colore acceso, progressi (14 giorni), sessione su misura
-- [ ] Ripasso: Active Recall, Collocations, Sinonimi & Parafrasi, Crea una frase (AI), Speaking Challenge (AI)
+- [ ] Ripasso: collegare tutti i 10 metodi distinti, spiegazioni iniziali e 4 categorie; completare produzione, speaking con autovalutazione e quaderno errori
 - [ ] Archivio: registro, attività, compiti per lezione; scheda lezione modificabile, apri file
 - [ ] Verifica completa nell'anteprima

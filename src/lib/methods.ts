@@ -170,7 +170,9 @@ export const METHODS: MethodInfo[] = [
 ];
 
 export function methodInfo(id: MethodId): MethodInfo {
-  return METHODS.find((m) => m.id === id) ?? METHODS[0]!;
+  const info = METHODS.find((m) => m.id === id);
+  if (!info) throw new Error("Metodo di ripasso non disponibile.");
+  return info;
 }
 
 export function isMethodId(v: unknown): v is MethodId {

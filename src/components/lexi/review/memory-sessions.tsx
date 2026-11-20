@@ -34,7 +34,7 @@ export function ActiveRecallSession({ cards, onExit, onRestart }: SessionProps) 
   const [answer, setAnswer] = useState("");
   const [fb, setFb] = useState<Feedback | null>(null);
 
-  if (!q.current) return <SessionSummary method="active_recall" cards={cards} log={rec.log} xp={rec.xp} streak={rec.streak} onExit={onExit} onRestart={onRestart} />;
+  if (!q.current) return <SessionSummary method="active_recall" cards={cards} {...rec} onExit={onExit} onRestart={onRestart} />;
 
   const { item, attempt } = q.current;
   const card = byId.get(item.cardId);
@@ -117,7 +117,7 @@ export function SpacedRepetitionSession({ cards, onExit, onRestart }: SessionPro
   const [result, setResult] = useState<{ correct: boolean; level: number; days: number } | null>(null);
   const card = cards[index];
 
-  if (!card) return <SessionSummary method="spaced_repetition" cards={cards} log={rec.log} xp={rec.xp} streak={rec.streak} onExit={onExit} onRestart={onRestart} />;
+  if (!card) return <SessionSummary method="spaced_repetition" cards={cards} {...rec} onExit={onExit} onRestart={onRestart} />;
 
   const level = levelOf(card);
 
@@ -210,7 +210,7 @@ export function RetrievalSession({ cards, onExit, onRestart }: SessionProps) {
   const [overrides, setOverrides] = useState<Set<number>>(new Set());
   const [saved, setSaved] = useState(false);
 
-  if (saved) return <SessionSummary method="retrieval_practice" cards={cards} log={rec.log} xp={rec.xp} streak={rec.streak} onExit={onExit} onRestart={onRestart} />;
+  if (saved) return <SessionSummary method="retrieval_practice" cards={cards} {...rec} onExit={onExit} onRestart={onRestart} />;
 
   const current = questions[answers.length];
 
@@ -289,7 +289,7 @@ export function RetrievalSession({ cards, onExit, onRestart }: SessionProps) {
                   </p>
                 </div>
                 {!g.auto && g.a.text && (
-                  <button
+                  <Button variant="ghost"
                     onClick={() =>
                       setOverrides((s) => {
                         const n = new Set(s);
@@ -301,7 +301,7 @@ export function RetrievalSession({ cards, onExit, onRestart }: SessionProps) {
                     className="shrink-0 text-xs font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                   >
                     {overrides.has(i) ? "Annulla" : "Era giusta"}
-                  </button>
+                  </Button>
                 )}
               </div>
             </li>

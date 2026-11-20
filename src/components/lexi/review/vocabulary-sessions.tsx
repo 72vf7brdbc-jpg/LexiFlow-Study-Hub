@@ -40,7 +40,7 @@ export function CollocationsSession({ cards, onExit, onRestart }: SessionProps) 
   if (rounds.length === 0) {
     return <EmptyState icon={<RotateCcw className="size-6" />} title="Nessuna espressione da allenare" description="Servono parole con una frase d'esempio o un'espressione." action={<Button onClick={onExit}>Torna al Ripasso</Button>} />;
   }
-  if (!round) return <SessionSummary method="collocations" cards={cards} log={rec.log} xp={rec.xp} streak={rec.streak} onExit={onExit} onRestart={onRestart} />;
+  if (!round) return <SessionSummary method="collocations" cards={cards} {...rec} onExit={onExit} onRestart={onRestart} />;
 
   const next = () => setIndex((i) => i + 1);
 
@@ -121,7 +121,7 @@ function MatchRound({ pairs, mode, onDone }: { pairs: MatchPair[]; mode: "expres
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             {left.map((i) => (
-              <button
+              <Button variant="ghost"
                 key={i}
                 disabled={matched.has(i) || finished}
                 onClick={() => {
@@ -131,12 +131,12 @@ function MatchRound({ pairs, mode, onDone }: { pairs: MatchPair[]; mode: "expres
                 className={tile(selLeft === i, matched.has(i), flash === i)}
               >
                 {pairs[i]?.left}
-              </button>
+              </Button>
             ))}
           </div>
           <div className="space-y-2">
             {right.map((i) => (
-              <button
+              <Button variant="ghost"
                 key={i}
                 disabled={matched.has(i) || finished}
                 onClick={() => {
@@ -146,7 +146,7 @@ function MatchRound({ pairs, mode, onDone }: { pairs: MatchPair[]; mode: "expres
                 className={cn(tile(selRight === i, matched.has(i), false), "font-display italic")}
               >
                 {pairs[i]?.right}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -227,14 +227,14 @@ function OrderRound({ round, onDone }: { round: Extract<CollocationRound, { type
         <div className="mt-4 flex min-h-[3.25rem] flex-wrap gap-2 rounded-xl border border-dashed border-border bg-background/60 p-2.5">
           {chosen.length === 0 && <span className="px-1 py-1.5 text-sm text-muted-foreground/70">La tua frase apparirà qui</span>}
           {chosen.map((i, pos) => (
-            <button
+            <Button variant="ghost"
               key={`${i}-${pos}`}
               disabled={result !== null}
               onClick={() => setChosen((c) => c.filter((_, p) => p !== pos))}
               className="rounded-lg border border-primary/40 bg-paper px-3 py-1.5 font-display text-[15px] text-foreground shadow-soft"
             >
               {round.tokens[i]}
-            </button>
+            </Button>
           ))}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -244,14 +244,14 @@ function OrderRound({ round, onDone }: { round: Extract<CollocationRound, { type
                 {t}
               </span>
             ) : (
-              <button
+              <Button variant="ghost"
                 key={i}
                 disabled={result !== null}
                 onClick={() => setChosen((c) => [...c, i])}
                 className="rounded-lg border border-border bg-paper px-3 py-1.5 font-display text-[15px] text-foreground transition-colors hover:border-primary/60"
               >
                 {t}
-              </button>
+              </Button>
             ),
           )}
         </div>
@@ -293,15 +293,16 @@ export function ContextualSession({ cards, onExit, onRestart }: SessionProps) {
   const [override, setOverride] = useState(false);
   const card = cards[index];
 
-  if (!card) return <SessionSummary method="contextual_learning" cards={cards} log={rec.log} xp={rec.xp} streak={rec.streak} onExit={onExit} onRestart={onRestart} />;
+  if (!card) return <SessionSummary method="contextual_learning" cards={cards} {...rec} onExit={onExit} onRestart={onRestart} />;
 
   const ready = meaning.trim() && register && sentence.trim();
   const check = () => {
-    if (!ready || !register) return;
+    if (!ready || !register || coach.loading) return;
     void coach.run({ method: "contextual_learning", cardId: card.id, meaning: meaning.trim(), register, sentence: sentence.trim() });
   };
   const correct = coach.result ? override || coachCountsAsCorrect(coach.result.verdict) : false;
   const next = () => {
+    if (coach.loading) return;
     if (coach.result) rec.save(card.id, correct, "typed", `${meaning.trim()} | ${register ?? ""} | ${sentence.trim()}`);
     coach.reset();
     setIndex((i) => i + 1);
@@ -328,7 +329,7 @@ export function ContextualSession({ cards, onExit, onRestart }: SessionProps) {
           <Step n={2} label="Che registro ha?">
             <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Registro">
               {REGISTERS.map((r) => (
-                <button
+                <Button variant="ghost"
                   key={r.id}
                   role="radio"
                   aria-checked={register === r.id}
@@ -339,7 +340,7 @@ export function ContextualSession({ cards, onExit, onRestart }: SessionProps) {
                   )}
                 >
                   {r.label}
-                </button>
+                </Button>
               ))}
             </div>
           </Step>
@@ -348,7 +349,7 @@ export function ContextualSession({ cards, onExit, onRestart }: SessionProps) {
           </Step>
           {coach.error && <InlineError title="Correzione non riuscita" message={coach.error} onRetry={check} />}
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={next}>
+            <Button variant="ghost" size="sm" onClick={next} disabled={coach.loading}>
               Salta
             </Button>
             <Button size="lg" onClick={check} disabled={!ready || coach.loading}>
@@ -463,16 +464,17 @@ function TranslationRun({
   const [answer, setAnswer] = useState("");
   const [override, setOverride] = useState(false);
 
-  if (!q.current) return <SessionSummary method="translation_practice" cards={cards} log={rec.log} xp={rec.xp} streak={rec.streak} onExit={onExit} onRestart={onRestart} />;
+  if (!q.current) return <SessionSummary method="translation_practice" cards={cards} {...rec} onExit={onExit} onRestart={onRestart} />;
   const item = q.current.item;
   const toEnglish = item.direction === "it_en";
 
   const check = () => {
-    if (!answer.trim()) return;
+    if (!answer.trim() || coach.loading) return;
     void coach.run({ method: "translation_practice", cardId: item.cardId, direction: item.direction, source: item.source, answer: answer.trim() });
   };
   const correct = coach.result ? override || coachCountsAsCorrect(coach.result.verdict) : false;
   const next = () => {
+    if (coach.loading) return;
     if (coach.result) rec.save(item.cardId, correct, "typed", answer.trim());
     coach.reset();
     q.advance(true);
@@ -495,7 +497,7 @@ function TranslationRun({
           <AnswerArea value={answer} onChange={setAnswer} placeholder={toEnglish ? "Scrivi la frase in inglese…" : "Scrivi la frase in italiano…"} label="Traduzione" autoFocus />
           {coach.error && <InlineError title="Correzione non riuscita" message={coach.error} onRetry={check} />}
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={next}>
+            <Button variant="ghost" size="sm" onClick={next} disabled={coach.loading}>
               Salta
             </Button>
             <Button size="lg" onClick={check} disabled={!answer.trim() || coach.loading}>

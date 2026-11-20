@@ -151,7 +151,7 @@ function Dashboard() {
                   : "Prima quelle che hai sbagliato, poi quelle in scadenza. Rispondi scrivendo o a voce."}
               </p>
               <Button asChild size="lg" className="mt-6">
-                <Link to="/review">
+                <Link to="/review" search={{ method: "spaced_repetition" }}>
                   Inizia il ripasso <ArrowRight />
                 </Link>
               </Button>
@@ -163,7 +163,7 @@ function Dashboard() {
                 Nessuna scheda in scadenza ora. Puoi fare un allenamento extra sulle parole più difficili.
               </p>
               <Button asChild size="lg" variant="outline" className="mt-6">
-                <Link to="/review" search={{ mode: "practice" }}>
+                <Link to="/review" search={{ method: "active_recall" }}>
                   Allenamento extra <ArrowRight />
                 </Link>
               </Button>

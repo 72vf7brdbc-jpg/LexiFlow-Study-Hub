@@ -101,3 +101,87 @@ describe("answer grading", () => {
     expect(gradeAnswer("I think it's give up", "give up", "voice").correct).toBe(true);
   });
 });
+
+import { CATEGORIES, METHODS, poolFor, SPEAKING_DURATIONS } from "@/lib/methods";
+import { buildCollocationRounds, buildRecallItems, buildRetrievalQuestions, buildSynonymItems, buildTranslationItems, errorKindsFor, speakingWordCount } from "@/lib/method-exercises";
+import { mistakeAfterAnswer, mistakePhase } from "@/lib/mistakes";
+import { reviewSchedule } from "@/lib/srs";
+import type { PracticeCard } from "@/lib/practice";
+
+const WORD: PracticeCard = { id: "word-1", term: "decision", meaning: "decisione", definition: "A choice made after consideration", example: "I made a decision today.", cloze: "I made a _____ today.", kind: "word", synonyms: [], collocations: ["make a decision"], due_at: NOW.toISOString(), repetitions: 2, interval_days: 3, correct_count: 2, incorrect_count: 1, material_id: "lesson-1" };
+
+describe("distinct review methods", () => {
+  it("groups all ten methods in the four requested categories", () => {
+    expect(CATEGORIES.map((c) => c.id)).toEqual(["memorizzazione", "vocabolario", "produzione", "consolidamento"]);
+    expect(METHODS.filter((m) => m.category === "memorizzazione").map((m) => m.id)).toEqual(["active_recall", "spaced_repetition", "retrieval_practice"]);
+    expect(METHODS.filter((m) => m.category === "vocabolario").map((m) => m.id)).toEqual(["collocations", "contextual_learning", "translation_practice"]);
+    expect(METHODS.filter((m) => m.category === "produzione").map((m) => m.id)).toEqual(["sentence_creation", "synonyms_paraphrasing", "speaking_challenge"]);
+    expect(METHODS.filter((m) => m.category === "consolidamento").map((m) => m.id)).toEqual(["error_based"]);
+    expect(new Set(METHODS.map((m) => m.id)).size).toBe(10);
+  });
+  it("active recall alternates Italian meanings and English words with no answer options", () => {
+    const items = buildRecallItems([WORD, WORD, WORD]);
+    expect(items.map((i) => i.direction)).toEqual(["it_en", "it_en", "en_it"]);
+    expect(items.map((i) => i.expected)).toEqual(["decision", "decision", "decisione"]);
+  });
+  it("spaced repetition excludes tomorrow while extra practice keeps all saved words", () => {
+    const tomorrow = { ...WORD, id: "tomorrow", due_at: new Date(NOW.getTime() + DAY).toISOString() };
+    const dayEnd = new Date("2026-11-12T23:59:59.999Z");
+    expect(poolFor("spaced_repetition", [WORD, tomorrow], { now: NOW, dayEnd }).map((c) => c.id)).toEqual(["word-1"]);
+    expect(poolFor("sentence_creation", [WORD, tomorrow], { now: NOW, dayEnd })).toHaveLength(2);
+  });
+  it("correct extra practice does not advance an already scheduled word", () => {
+    expect(reviewSchedule(WORD, true, false, NOW)).toBeNull();
+  });
+  it("collocations build match, gap and order using only lesson expressions", () => {
+    const cards = [WORD, { ...WORD, id: "w2", term: "choice", meaning: "scelta", collocations: ["make a choice"], example: "I made a choice today." }, { ...WORD, id: "w3", term: "effort", meaning: "sforzo", collocations: ["make an effort"], example: "I made an effort today." }];
+    const rounds = buildCollocationRounds(cards, () => 0);
+    expect(new Set(rounds.map((r) => r.type))).toEqual(new Set(["match", "gap", "order"]));
+    for (const round of rounds) {
+      if (round.type === "match") expect(round.pairs.map((p) => p.right).sort()).toEqual(["choice", "decision", "effort"]);
+      else expect(cards.some((c) => c.collocations.includes(round.full) || c.example === round.full)).toBe(true);
+    }
+  });
+  it("retrieval questions have concrete saved answers for the final comparison", () => {
+    expect(buildRetrievalQuestions([WORD, WORD, WORD]).map((q) => q.answer)).toEqual(["decision", "decision", "decision"]);
+  });
+  it("synonyms and paraphrases alternate and paraphrases require a saved example", () => {
+    expect(buildSynonymItems([WORD, WORD]).map((i) => i.task)).toEqual(["synonym", "paraphrase"]);
+    expect(buildSynonymItems([WORD, { ...WORD, example: null }])[1]?.task).toBe("synonym");
+  });
+  it("speaking uses three to five saved words and one or two minutes", () => {
+    expect(SPEAKING_DURATIONS).toEqual([60, 120]);
+    expect(speakingWordCount(20, () => 0)).toBe(3);
+    expect(speakingWordCount(20, () => 0.99)).toBe(5);
+    expect(speakingWordCount(3, () => 0.99)).toBe(3);
+  });
+  it("context and translation require lesson examples containing the word", () => {
+    const absent = { ...WORD, id: "missing", example: "Hello." };
+    expect(poolFor("contextual_learning", [WORD, absent]).map((c) => c.id)).toEqual(["word-1"]);
+    expect(poolFor("translation_practice", [WORD, absent]).map((c) => c.id)).toEqual(["word-1"]);
+  });
+  it("translations alternate IT to EN and EN to IT using the lesson sentences", () => {
+    const items = buildTranslationItems([WORD, WORD]);
+    expect(items.map((i) => i.direction)).toEqual(["it_en", "en_it"]);
+    expect(items.map((i) => i.english)).toEqual(["I made a decision today.", "I made a decision today."]);
+  });
+  it("error training uses a different exercise from active recall", () => {
+    const kinds = errorKindsFor(WORD, "active_recall", [WORD]);
+    expect(kinds).not.toContain("meaning_to_term");
+    expect(kinds).toContain("cloze");
+  });
+  it("a corrected error waits three days before its final check", () => {
+    const corrected = mistakeAfterAnswer({ wrong_count: 1, check_after: null, resolved_at: null }, true, NOW);
+    expect(corrected.check_after).toBe("2026-11-15T10:00:00.000Z");
+    expect(mistakePhase(corrected, NOW)).toBe("waiting");
+    expect(mistakePhase(corrected, new Date(NOW.getTime() + 3 * DAY))).toBe("check");
+    const resolved = mistakeAfterAnswer(corrected, true, new Date(NOW.getTime() + 3 * DAY));
+    expect(resolved.resolved_at).toBe("2026-11-15T10:00:00.000Z");
+  });
+  it("error sessions exclude waiting errors and resolved errors", () => {
+    const mistakes = [{ id: "m1", card_id: WORD.id, method: "active_recall", answer: "wrong", last_wrong_at: NOW.toISOString(), wrong_count: 1, check_after: new Date(NOW.getTime() + 3 * DAY).toISOString(), resolved_at: null }];
+    expect(poolFor("error_based", [WORD], { now: NOW, mistakes })).toEqual([]);
+    expect(poolFor("error_based", [WORD], { now: new Date(NOW.getTime() + 3 * DAY), mistakes })).toHaveLength(1);
+    expect(poolFor("error_based", [WORD], { now: NOW, mistakes: mistakes.map((m) => ({ ...m, resolved_at: NOW.toISOString() })) })).toEqual([]);
+  });
+});

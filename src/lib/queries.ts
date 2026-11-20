@@ -220,13 +220,14 @@ export type ReviewData = {
   cards: ReviewCard[];
   materials: Pick<Material, "id" | "title" | "topic" | "lesson_date">[];
   mistakes: ReviewMistake[];
+  tasks: Task[];
 };
 
 /** Everything the Ripasso section needs: the learner's words, lessons and open mistakes. */
 export const reviewDataQuery = queryOptions({
   queryKey: ["review-data"],
   queryFn: async (): Promise<ReviewData> => {
-    const [cards, materials, mistakes] = await Promise.all([
+    const [cards, materials, mistakes, tasks] = await Promise.all([
       supabase
         .from("cards")
         .select(
@@ -240,11 +241,13 @@ export const reviewDataQuery = queryOptions({
         .select("id, card_id, method, answer, wrong_count, check_after, resolved_at, last_wrong_at")
         .is("resolved_at", null)
         .limit(2000),
+      supabase.from("tasks").select("*").order("due_date", { ascending: true, nullsFirst: false }).limit(2000),
     ]);
     if (cards.error) throw cards.error;
     if (materials.error) throw materials.error;
     if (mistakes.error) throw mistakes.error;
-    return { cards: cards.data ?? [], materials: materials.data ?? [], mistakes: mistakes.data ?? [] };
+    if (tasks.error) throw tasks.error;
+    return { cards: cards.data ?? [], materials: materials.data ?? [], mistakes: mistakes.data ?? [], tasks: tasks.data ?? [] };
   },
   staleTime: 15_000,
 });
