@@ -31,7 +31,8 @@ use the editor.
 
 ## Project rules
 - Study rules (spaced repetition, streak, XP, session size, answer grading) live as pure functions in `src/lib/{srs,streak,plan,grading}.ts` and are covered by `src/test/study-rules.test.ts`; change them there, never inline in components or server functions.
-- AI work runs only in `src/lib/ai/*.server.ts`, behind authenticated `analyzeMaterial`, `coachEvaluate` and `prepareItalianSentences` server functions; voice transcription uses `/api/transcribe` with bearer verification, keeping credentials and evaluations server-side.
+- AI work runs only in `src/lib/ai/*.server.ts`, behind authenticated material, coach and grammar server functions; voice transcription uses `/api/transcribe` with bearer verification, keeping credentials and evaluations server-side.
 - Signed-in pages live under `src/routes/_authenticated/_hub/` so the hub layout can redirect un-onboarded users to `/onboarding` before rendering.
 
 - ReviewSection dispatches to dedicated method sessions in `src/components/lexi/review/`; method eligibility and exercise builders stay in pure library modules so one generic drill cannot replace distinct methods.
+- Grammar uses separate user-owned rules and attempts, with validated structured theory/exercises; extraction shares the upload AI call and requires a literal source quote so lesson attribution is evidenced, while manual requests stay explicitly separate.

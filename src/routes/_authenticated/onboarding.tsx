@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
     meta: [
       { title: "Il tuo profilo di studio — LexiFlow" },
       { name: "description", content: "Imposta lingua, livello CEFR, obiettivo e frequenza di studio." },
-      { property: "og:title", content: "Profilo di studio — LexiFlow" },
+      { property: "og:title", content: "Configura il tuo studio — LexiFlow" },
       { property: "og:description", content: "Tre passaggi per calibrare le tue schede di inglese." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

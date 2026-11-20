@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { ANALYSIS_MODEL, createResponsesProvider, friendlyAiError, getLovableApiKey } from "./gateway.server";
 import { goalName, languageName } from "../study-config";
+import { grammarContentSchema, supportedGrammarRules } from "../grammar";
+import { GRAMMAR_INSTRUCTIONS, grammarWireShape } from "./grammar.server";
 
 export type AnalysisInput = {
   sourceType: "photo" | "file" | "text";
@@ -11,6 +13,7 @@ export type AnalysisInput = {
   base64?: string | null | undefined;
   mimeType?: string | null | undefined;
   fileName?: string | null | undefined;
+  additionalFiles?: ({ kind: "text"; text: string; fileName: string } | { kind: "binary"; base64: string; mimeType: string; fileName: string })[] | undefined;
 };
 
 export type LearnerProfile = {
@@ -35,6 +38,7 @@ const analysisSchema = z.object({
   summary: z.string().trim().max(800),
   extracted_text: z.string().max(12000),
   cards: z.array(cardSchema),
+  grammar_rules: z.array(grammarContentSchema).max(6),
 });
 
 export type MaterialAnalysis = z.infer<typeof analysisSchema>;
@@ -44,12 +48,13 @@ const nullableString: { type: ("string" | "null")[] } = { type: ["string", "null
 const wireSchema = jsonSchema<MaterialAnalysis>({
   type: "object",
   additionalProperties: false,
-  required: ["title", "topic", "summary", "extracted_text", "cards"],
+  required: ["title", "topic", "summary", "extracted_text", "cards", "grammar_rules"],
   properties: {
     title: { type: "string" },
     topic: { type: "string" },
     summary: { type: "string" },
     extracted_text: { type: "string" },
+    grammar_rules: { type: "array", items: grammarWireShape },
     cards: {
       type: "array",
       items: {
@@ -104,10 +109,11 @@ function buildInstructions(profile: LearnerProfile) {
     "   - phonetic: IPA for single words or short phrases, otherwise null.",
     "Avoid duplicates and trivial words below the learner's level. Never invent content unrelated to the material.",
     "If the material is unreadable or contains no English to learn, return an empty cards array and explain why in summary.",
+    GRAMMAR_INSTRUCTIONS,
   ].join("\n");
 }
 
-function buildMessages(input: AnalysisInput): ModelMessage[] {
+function buildSingleMessages(input: AnalysisInput): ModelMessage[] {
   const intro = "Here is my lesson material. Create study cards from it.";
   if (input.sourceType === "text" || !input.base64) {
     return [{ role: "user", content: [{ type: "text", text: `${intro}\n\n---\n${(input.text ?? "").slice(0, 60000)}` }] }];
@@ -134,6 +140,16 @@ function buildMessages(input: AnalysisInput): ModelMessage[] {
       ],
     },
   ];
+}
+
+function buildMessages(input: AnalysisInput): ModelMessage[] {
+  const messages = buildSingleMessages(input);
+  for (const file of input.additionalFiles ?? []) {
+    messages.push(...buildSingleMessages(file.kind === "text"
+      ? { sourceType: "text", text: file.text, fileName: file.fileName }
+      : { sourceType: "file", base64: file.base64, mimeType: file.mimeType, fileName: file.fileName }));
+  }
+  return messages;
 }
 
 export type AnalysisResult =
@@ -177,7 +193,8 @@ export async function analyzeMaterialWithAI(input: AnalysisInput, profile: Learn
         return true;
       })
       .slice(0, 25);
-    return { ok: true, analysis: { ...parsed.data, cards } };
+    const grammar_rules = supportedGrammarRules(parsed.data.grammar_rules, parsed.data.extracted_text);
+    return { ok: true, analysis: { ...parsed.data, cards, grammar_rules } };
   } catch (error) {
     if (NoObjectGeneratedError.isInstance(error)) {
       console.error("no object generated", error.message);

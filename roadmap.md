@@ -1,5 +1,10 @@
 # Roadmap — Lezioni, compiti e Ripasso avanzato
 
+- [x] Grammatica: estrazione automatica dai nuovi materiali (anche file multipli) e recupero dalle lezioni già salvate
+- [x] Grammatica: riquadro rosso al primo posto, teoria consultabile e regole manuali/su richiesta
+- [x] Grammatica: esercizi dedicati, correzioni motivate e salvataggio dei risultati
+- [x] Grammatica: 6 test delle regole; richieste C1, estrazione nuova/passata e quattro esercizi verificati con account temporaneo; nessun errore e nessuno sforamento sul telefono
+
 - [ ] Database: giorni di lezione nel profilo, registro sulle lezioni, compiti, file originali, sinonimi/collocations sulle schede
 - [ ] Regole: intervalli 1/3/7/14/30 giorni, stati Da imparare / In consolidamento / Appreso, prossima lezione (+ test)
 - [ ] Profilo e configurazione iniziale: scelta giorni di lezione

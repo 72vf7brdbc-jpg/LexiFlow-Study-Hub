@@ -49,6 +49,8 @@
   --color-navy-foreground: var(--navy-foreground);
   --color-camel: var(--camel);
   --color-burgundy: var(--burgundy);
+  --color-grammar: var(--grammar);
+  --color-grammar-foreground: var(--grammar-foreground);
   --color-gold: var(--gold);
   --color-paper: var(--paper);
   --color-success: var(--success);
@@ -97,6 +99,8 @@
   --navy-foreground: oklch(0.975 0.014 86);
   --camel: oklch(0.7 0.085 68);
   --burgundy: oklch(0.42 0.12 18);
+  --grammar: oklch(0.49 0.19 23);
+  --grammar-foreground: oklch(0.99 0.006 84);
   --gold: oklch(0.76 0.115 80);
   --success: oklch(0.5 0.085 155);
   --success-soft: oklch(0.93 0.035 150);
@@ -143,6 +147,8 @@
   --navy-foreground: oklch(0.2 0.02 255);
   --camel: oklch(0.75 0.085 68);
   --burgundy: oklch(0.68 0.12 18);
+  --grammar: oklch(0.49 0.19 23);
+  --grammar-foreground: oklch(0.99 0.006 84);
   --gold: oklch(0.8 0.11 80);
   --success: oklch(0.72 0.1 155);
   --success-soft: oklch(0.3 0.04 155);

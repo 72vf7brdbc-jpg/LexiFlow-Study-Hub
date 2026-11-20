@@ -91,6 +91,88 @@ export type Database = {
           },
         ]
       }
+      grammar_attempts: {
+        Row: {
+          answer: string
+          correct: boolean
+          created_at: string
+          exercise_index: number
+          feedback: string
+          id: string
+          rule_id: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          correct: boolean
+          created_at?: string
+          exercise_index: number
+          feedback: string
+          id?: string
+          rule_id: string
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          correct?: boolean
+          created_at?: string
+          exercise_index?: number
+          feedback?: string
+          id?: string
+          rule_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grammar_attempts_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "grammar_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grammar_rules: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          level: string
+          material_id: string | null
+          source: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          level?: string
+          material_id?: string | null
+          source?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          level?: string
+          material_id?: string | null
+          source?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grammar_rules_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materials: {
         Row: {
           activities: string[]
@@ -101,6 +183,7 @@ export type Database = {
           file_mime: string | null
           file_name: string | null
           file_path: string | null
+          grammar_extracted_at: string | null
           id: string
           lesson_date: string | null
           notes: string | null
@@ -122,6 +205,7 @@ export type Database = {
           file_mime?: string | null
           file_name?: string | null
           file_path?: string | null
+          grammar_extracted_at?: string | null
           id?: string
           lesson_date?: string | null
           notes?: string | null
@@ -143,6 +227,7 @@ export type Database = {
           file_mime?: string | null
           file_name?: string | null
           file_path?: string | null
+          grammar_extracted_at?: string | null
           id?: string
           lesson_date?: string | null
           notes?: string | null

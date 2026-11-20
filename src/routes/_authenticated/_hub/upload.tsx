@@ -44,7 +44,7 @@ const MODES = [
 
 const PHASES = ["Leggo i materiali", "Estraggo il vocabolario chiave", "Calibro le schede sul tuo livello", "Salvo nel tuo archivio"];
 
-type Done = { materialId: string; title: string; cardCount: number; saveOnly: boolean };
+type Done = { materialId: string; title: string; cardCount: number; grammarCount: number; saveOnly: boolean };
 
 function UploadPage() {
   const search = Route.useSearch();
@@ -156,7 +156,9 @@ function UploadPage() {
         setError(res.message);
         return;
       }
-      setDone({ materialId: res.materialId, title: res.title, cardCount: res.cardCount, saveOnly });
+      setDone({ materialId: res.materialId, title: res.title, cardCount: res.cardCount, grammarCount: res.grammarCount, saveOnly });
+      queryClient.invalidateQueries({ queryKey: ["grammar"] });
+      queryClient.invalidateQueries({ queryKey: ["review-data"] });
       queryClient.invalidateQueries({ queryKey: ["materials"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
       toast.success(saveOnly ? "Lezione archiviata nel registro" : `${res.cardCount} schede create`);
@@ -198,6 +200,7 @@ function UploadPage() {
               </>
             )}
           </p>
+          {done.grammarCount > 0 && <p className="mt-3 font-semibold text-grammar">{done.grammarCount} {done.grammarCount === 1 ? "argomento di grammatica pronto" : "argomenti di grammatica pronti"}</p>}
           <div className="mt-7 flex flex-col justify-center gap-2.5 sm:flex-row">
             {!done.saveOnly && (
               <Button asChild size="lg">

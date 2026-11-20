@@ -11,6 +11,7 @@ import { CollocationsSession, ContextualSession, TranslationSession } from "./re
 import { SentenceSession, SpeakingSession, SynonymsSession } from "./review/production-sessions";
 import { ErrorSession } from "./review/error-session";
 import type { SessionProps } from "./review/hooks";
+import { GrammarBanner, GrammarWorkspace } from "./review/grammar-section";
 
 const ICONS = { active_recall: Brain, spaced_repetition: CalendarClock, retrieval_practice: ClipboardCheck, collocations: Link2, contextual_learning: ScanText, translation_practice: Languages, sentence_creation: PenLine, synonyms_paraphrasing: MessageCircle, speaking_challenge: Mic, error_based: RefreshCw };
 const SESSIONS: Record<MethodId, React.ComponentType<SessionProps>> = { active_recall: ActiveRecallSession, spaced_repetition: SpacedRepetitionSession, retrieval_practice: RetrievalSession, collocations: CollocationsSession, contextual_learning: ContextualSession, translation_practice: TranslationSession, sentence_creation: SentenceSession, synonyms_paraphrasing: SynonymsSession, speaking_challenge: SpeakingSession, error_based: ErrorSession };
@@ -18,6 +19,8 @@ const SESSIONS: Record<MethodId, React.ComponentType<SessionProps>> = { active_r
 type Props = { data: ReviewData; method?: MethodId | undefined; material?: string | undefined; onSelect: (method: MethodId | undefined) => void; onClearMaterial: () => void };
 export default function ReviewSection({ data, method, material, onSelect, onClearMaterial }: Props) {
   const [run, setRun] = useState<{ method: MethodId; cards: ReviewCard[]; data: ReviewData; key: number } | null>(null);
+  const [grammarOpen, setGrammarOpen] = useState(false);
+  if (grammarOpen) return <GrammarWorkspace material={material} onClose={() => setGrammarOpen(false)} />;
   const cards = material ? data.cards.filter((c) => c.material_id === material) : data.cards;
   const lesson = data.materials.find((m) => m.id === material);
   const exit = () => { setRun(null); onSelect(undefined); };
@@ -41,6 +44,7 @@ export default function ReviewSection({ data, method, material, onSelect, onClea
   const pendingTasks = data.tasks.filter((t) => t.status !== "done" && (!material || t.material_id === material));
   const waiting = data.mistakes.filter((m) => mistakePhase(m) === "waiting").length;
   return <div className="mx-auto max-w-5xl pb-12 animate-rise">
+    <GrammarBanner onOpen={() => setGrammarOpen(true)} />
     <section aria-label="Da fare" className="mb-8 border-y border-camel bg-gold/20 px-4 py-5 sm:px-6">
       <div className="flex items-center justify-between gap-4"><h2 className="flex items-center gap-2 font-display text-xl font-medium"><ClipboardCheck className="size-5 text-accent-foreground" /> Da fare</h2><span className="font-mono text-xs text-accent-foreground">{pendingTasks.length} in sospeso</span></div>
       {pendingTasks.length ? <ul className="mt-3 divide-y divide-camel/40">{pendingTasks.map((task) => <li key={task.id}><Button asChild variant="ghost" className="h-auto w-full justify-between rounded-none px-0 py-3 text-left whitespace-normal"><Link to="/library/$materialId" params={{ materialId: task.material_id }}><span className="min-w-0"><span className="block font-semibold break-words">{task.description}</span><span className="mt-1 block text-xs text-muted-foreground">{data.materials.find((m) => m.id === task.material_id)?.title} · {task.status === "in_progress" ? "In corso" : "Da iniziare"}{task.due_date ? ` · ${new Date(`${task.due_date}T12:00:00`).toLocaleDateString("it-IT")}` : ""}</span></span><ArrowRight className="shrink-0" /></Link></Button></li>)}</ul> : <p className="mt-2 text-sm text-accent-foreground">Nessun compito in sospeso.</p>}

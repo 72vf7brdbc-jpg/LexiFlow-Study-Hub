@@ -12,6 +12,7 @@ const buttonVariants = cva(
         default:
           "bg-primary text-primary-foreground shadow-[inset_0_1px_0_color-mix(in_oklab,var(--primary-foreground)_18%,transparent),0_1px_2px_color-mix(in_oklab,var(--primary)_40%,transparent),0_8px_20px_-10px_color-mix(in_oklab,var(--primary)_70%,transparent)] hover:bg-primary/92 hover:-translate-y-px",
         navy: "bg-navy text-navy-foreground shadow-soft hover:bg-navy/92 hover:-translate-y-px",
+        grammar: "bg-grammar text-grammar-foreground hover:bg-grammar/90 shadow-soft",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
           "border border-input bg-paper text-foreground shadow-[0_1px_0_color-mix(in_oklab,var(--foreground)_4%,transparent)] hover:bg-secondary hover:border-foreground/20",

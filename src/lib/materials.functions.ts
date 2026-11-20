@@ -14,6 +14,10 @@ const analyzeInput = z
     base64: z.string().max(MAX_BASE64).nullable().optional(),
     mimeType: z.string().max(120).nullable().optional(),
     fileName: z.string().max(200).nullable().optional(),
+    additionalFiles: z.array(z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("text"), text: z.string().min(3).max(60000), fileName: z.string().max(200) }),
+      z.object({ kind: z.literal("binary"), base64: z.string().min(1).max(MAX_BASE64), mimeType: z.string().regex(/^(image\/(jpeg|png|webp|gif)|application\/pdf)$/), fileName: z.string().max(200) }),
+    ])).optional(),
   })
   .refine((d) => (d.text && d.text.trim().length >= 3) || (d.base64 && d.base64.length > 0), {
     message: "Nessun contenuto da analizzare",
@@ -23,7 +27,7 @@ const analyzeInput = z
   });
 
 export type AnalyzeMaterialResult =
-  | { ok: true; materialId: string; title: string; cardCount: number }
+  | { ok: true; materialId: string; title: string; cardCount: number; grammarCount: number }
   | { ok: false; message: string };
 
 export const analyzeMaterial = createServerFn({ method: "POST" })
@@ -46,7 +50,7 @@ export const analyzeMaterial = createServerFn({ method: "POST" })
     if (!result.ok) return result;
 
     const { analysis } = result;
-    if (analysis.cards.length === 0) {
+    if (analysis.cards.length === 0 && analysis.grammar_rules.length === 0) {
       return {
         ok: false,
         message: analysis.summary || "Non ho trovato vocaboli da studiare in questo materiale.",
@@ -65,6 +69,7 @@ export const analyzeMaterial = createServerFn({ method: "POST" })
         topic: analysis.topic,
         extracted_text: (analysis.extracted_text || data.text || "").slice(0, 12000),
         card_count: analysis.cards.length,
+        grammar_extracted_at: new Date().toISOString(),
       })
       .select("id")
       .single();
@@ -73,7 +78,7 @@ export const analyzeMaterial = createServerFn({ method: "POST" })
       return { ok: false, message: "Non è stato possibile salvare la lezione. Riprova." };
     }
 
-    const { error: cardsErr } = await supabase.from("cards").insert(
+    const cardsResult = analysis.cards.length ? await supabase.from("cards").insert(
       analysis.cards.map((c) => ({
         user_id: userId,
         material_id: material.id,
@@ -85,12 +90,23 @@ export const analyzeMaterial = createServerFn({ method: "POST" })
         cloze: c.cloze && c.cloze.includes("___") ? c.cloze : null,
         phonetic: c.phonetic,
       })),
-    );
+    ) : { error: null };
+    const cardsErr = cardsResult.error;
     if (cardsErr) {
       console.error("cards insert failed", cardsErr);
       await supabase.from("materials").delete().eq("id", material.id);
       return { ok: false, message: "Non è stato possibile salvare le schede. Riprova." };
     }
 
-    return { ok: true, materialId: material.id, title, cardCount: analysis.cards.length };
+    if (analysis.grammar_rules.length) {
+      const { error } = await supabase.from("grammar_rules").insert(analysis.grammar_rules.map((content) => ({
+        user_id: userId, material_id: material.id, title: content.title, level: profile?.cefr_level ?? "B1", source: "lesson", content,
+      })));
+      if (error) {
+        await supabase.from("cards").delete().eq("material_id", material.id);
+        await supabase.from("materials").delete().eq("id", material.id);
+        return { ok: false, message: "Non è stato possibile salvare la grammatica della lezione. Riprova." };
+      }
+    }
+    return { ok: true, materialId: material.id, title, cardCount: analysis.cards.length, grammarCount: analysis.grammar_rules.length };
   });
