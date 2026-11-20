@@ -32,7 +32,7 @@ export default function ReviewSection({ data, method, material, onSelect, onClea
   if (method) {
     const info = methodInfo(method);
     const lessonsWithCards = data.materials.filter((m) => cards.some((c) => c.material_id === m.id));
-    const scoped = picked.length ? cards.filter((c) => picked.includes(c.material_id)) : cards;
+    const scoped = picked.length ? cards.filter((c) => c.material_id != null && picked.includes(c.material_id)) : cards;
     const pool = poolFor(method, scoped, { mistakes: data.mistakes });
     const toggle = (id: string) => setPicked((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
     const Icon = ICONS[method];
