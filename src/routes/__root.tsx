@@ -82,6 +82,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     // twitter:image here: every page without its own would inherit the root's preview image.
     meta: [
       { charSet: "utf-8" },
+      { name: "apple-mobile-web-app-title", content: "LexiFlow" },
+      { name: "application-name", content: "LexiFlow" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "theme-color", content: "#264d40" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "LexiFlow Study Hub" },
       { name: "description", content: "Trasforma le tue lezioni di inglese in schede di studio intelligenti con l'AI." },
@@ -96,7 +100,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "manifest", href: "/manifest.json" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
