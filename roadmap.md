@@ -1,10 +1,10 @@
 # Roadmap — Lezioni, compiti e Ripasso avanzato
 
 ## Libri PDF
-- [ ] Caricamento privato riprendibile fino al limite reale di 5 GB
-- [ ] Scelta tra parti automatiche da 15 pagine e intervallo mirato
-- [ ] Parti persistenti nell’archivio; generazione progressiva con vocabolario e grammatica
-- [ ] Test delle pagine e verifica autenticata di entrambi i percorsi
+- [x] Caricamento privato riprendibile fino al limite reale di 5 GB; prova reale con PDF da 17,3 MB
+- [x] Scelta tra parti automatiche da 15 pagine e intervallo mirato
+- [x] Parti persistenti nell’archivio; generazione progressiva con vocabolario e grammatica
+- [x] 51 test; verifica autenticata di entrambi i percorsi, parti rilette dopo ricaricamento, intervallo 16–20 senza parole delle altre pagine; telefono 390/636px senza sforamenti
 
 ## Completamento richiesto il 21 novembre
 - [x] Progressi reali degli ultimi 14 giorni nel Ripasso, con vocabolario e grammatica

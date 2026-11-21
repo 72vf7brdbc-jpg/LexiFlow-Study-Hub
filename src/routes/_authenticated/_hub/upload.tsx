@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type DragEvent } from "react";
 import { toast } from "sonner";
 
 import { PageHeader, Stamp } from "@/components/lexi/ui-bits";
+import { PdfUpload } from "@/components/lexi/pdf-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +62,7 @@ function UploadPage() {
   // Gestione di file e foto multiple
   const [preparedList, setPreparedList] = useState<PreparedUpload[]>([]);
   const [fileMetas, setFileMetas] = useState<{ name: string; size: number }[]>([]);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
 
   const [preparing, setPreparing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -85,6 +87,7 @@ function UploadPage() {
     setError(null);
     setPreparedList([]);
     setFileMetas([]);
+    setPdfFile(null);
     navigate({ to: "/upload", search: { mode: m }, replace: true });
   }
 
@@ -93,6 +96,15 @@ function UploadPage() {
     setError(null);
     setPreparing(true);
     try {
+      const files = Array.from(fileList);
+      const pdf = files.find(file => file.type === "application/pdf" || /\.pdf$/i.test(file.name));
+      if (pdf) {
+        if (files.length !== 1 || preparedList.length > 0) throw new Error("Carica un libro PDF alla volta, separatamente dagli altri allegati.");
+        setPdfFile(pdf);
+        if (!title) setTitle(pdf.name.replace(/\.pdf$/i, "").slice(0, 140));
+        if (mode !== "file") navigate({ to: "/upload", search: { mode: "file" }, replace: true });
+        return;
+      }
       const newPrepared: PreparedUpload[] = [];
       const newMetas: { name: string; size: number }[] = [];
 
@@ -325,7 +337,9 @@ function UploadPage() {
               onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
             />
 
-            {fileMetas.length > 0 && (
+            {pdfFile && <PdfUpload key={`${pdfFile.name}-${pdfFile.lastModified}`} file={pdfFile} title={title} onRemove={() => setPdfFile(null)} />}
+
+            {!pdfFile && fileMetas.length > 0 && (
               <div className="space-y-2">
                 {fileMetas.map((meta, idx) => (
                   <div key={idx} className="flex items-center gap-4 rounded-xl border border-border bg-background p-3">
@@ -347,7 +361,7 @@ function UploadPage() {
               </div>
             )}
 
-            {fileMetas.length === 0 && (
+            {!pdfFile && fileMetas.length === 0 && (
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
@@ -385,6 +399,7 @@ function UploadPage() {
           </div>
         )}
 
+        {!pdfFile && <>
         <div className="grid gap-1.5">
           <label htmlFor="title" className="eyebrow">Titolo (facoltativo)</label>
           <Input
@@ -477,6 +492,7 @@ function UploadPage() {
         {mode === "text" && !canSubmit && text.length > 0 && (
           <p className="-mt-2 text-xs text-muted-foreground">Scrivi almeno qualche frase (20 caratteri) per un'analisi utile.</p>
         )}
+        </>}
       </div>
     </div>
   );

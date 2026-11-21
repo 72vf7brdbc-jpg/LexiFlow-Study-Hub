@@ -6,6 +6,8 @@ import { ArrowUpRight, Library, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { SourceIcon, sourceLabel } from "@/components/lexi/source-icon";
+import { BooksShelf } from "@/components/lexi/books-shelf";
+import { booksQuery } from "@/lib/book-queries";
 import { EmptyState, InlineError, LoadingScreen, PageHeader } from "@/components/lexi/ui-bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/_hub/library/")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(materialsQuery),
+  loader: ({ context }) => Promise.all([context.queryClient.ensureQueryData(materialsQuery), context.queryClient.ensureQueryData(booksQuery)]),
   pendingComponent: () => <LoadingScreen />,
   errorComponent: ({ error, reset }) => <InlineError message={error instanceof Error ? error.message : undefined} onRetry={reset} />,
   component: LibraryPage,
@@ -85,6 +87,8 @@ function LibraryPage() {
           </Button>
         }
       />
+
+      <BooksShelf />
 
       {materials.length === 0 ? (
         <EmptyState

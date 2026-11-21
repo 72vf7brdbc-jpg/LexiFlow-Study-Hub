@@ -20,6 +20,7 @@ import { Route as AuthenticatedHubDashboardRouteImport } from './routes/_authent
 import { Route as AuthenticatedHubReviewRouteImport } from './routes/_authenticated/_hub/review'
 import { Route as AuthenticatedHubSettingsRouteImport } from './routes/_authenticated/_hub/settings'
 import { Route as AuthenticatedHubUploadRouteImport } from './routes/_authenticated/_hub/upload'
+import { Route as AuthenticatedHubBooksBookIdRouteImport } from './routes/_authenticated/_hub/books.$bookId'
 import { Route as AuthenticatedHubLibraryIndexRouteImport } from './routes/_authenticated/_hub/library.index'
 import { Route as AuthenticatedHubLibraryMaterialIdRouteImport } from './routes/_authenticated/_hub/library.$materialId'
 
@@ -78,6 +79,12 @@ const AuthenticatedHubUploadRoute = AuthenticatedHubUploadRouteImport.update({
   path: '/upload',
   getParentRoute: () => AuthenticatedHubRouteRoute,
 } as any)
+const AuthenticatedHubBooksBookIdRoute =
+  AuthenticatedHubBooksBookIdRouteImport.update({
+    id: '/books/$bookId',
+    path: '/books/$bookId',
+    getParentRoute: () => AuthenticatedHubRouteRoute,
+  } as any)
 const AuthenticatedHubLibraryIndexRoute =
   AuthenticatedHubLibraryIndexRouteImport.update({
     id: '/library/',
@@ -101,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/review': typeof AuthenticatedHubReviewRoute
   '/settings': typeof AuthenticatedHubSettingsRoute
   '/upload': typeof AuthenticatedHubUploadRoute
+  '/books/$bookId': typeof AuthenticatedHubBooksBookIdRoute
   '/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
   '/library/': typeof AuthenticatedHubLibraryIndexRoute
 }
@@ -114,6 +122,7 @@ export interface FileRoutesByTo {
   '/review': typeof AuthenticatedHubReviewRoute
   '/settings': typeof AuthenticatedHubSettingsRoute
   '/upload': typeof AuthenticatedHubUploadRoute
+  '/books/$bookId': typeof AuthenticatedHubBooksBookIdRoute
   '/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
   '/library': typeof AuthenticatedHubLibraryIndexRoute
 }
@@ -130,6 +139,7 @@ export interface FileRoutesById {
   '/_authenticated/_hub/review': typeof AuthenticatedHubReviewRoute
   '/_authenticated/_hub/settings': typeof AuthenticatedHubSettingsRoute
   '/_authenticated/_hub/upload': typeof AuthenticatedHubUploadRoute
+  '/_authenticated/_hub/books/$bookId': typeof AuthenticatedHubBooksBookIdRoute
   '/_authenticated/_hub/library/$materialId': typeof AuthenticatedHubLibraryMaterialIdRoute
   '/_authenticated/_hub/library/': typeof AuthenticatedHubLibraryIndexRoute
 }
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/review'
     | '/settings'
     | '/upload'
+    | '/books/$bookId'
     | '/library/$materialId'
     | '/library/'
   fileRoutesByTo: FileRoutesByTo
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/review'
     | '/settings'
     | '/upload'
+    | '/books/$bookId'
     | '/library/$materialId'
     | '/library'
   id:
@@ -173,6 +185,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_hub/review'
     | '/_authenticated/_hub/settings'
     | '/_authenticated/_hub/upload'
+    | '/_authenticated/_hub/books/$bookId'
     | '/_authenticated/_hub/library/$materialId'
     | '/_authenticated/_hub/library/'
   fileRoutesById: FileRoutesById
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHubUploadRouteImport
       parentRoute: typeof AuthenticatedHubRouteRoute
     }
+    '/_authenticated/_hub/books/$bookId': {
+      id: '/_authenticated/_hub/books/$bookId'
+      path: '/books/$bookId'
+      fullPath: '/books/$bookId'
+      preLoaderRoute: typeof AuthenticatedHubBooksBookIdRouteImport
+      parentRoute: typeof AuthenticatedHubRouteRoute
+    }
     '/_authenticated/_hub/library/': {
       id: '/_authenticated/_hub/library/'
       path: '/library'
@@ -286,6 +306,7 @@ interface AuthenticatedHubRouteRouteChildren {
   AuthenticatedHubReviewRoute: typeof AuthenticatedHubReviewRoute
   AuthenticatedHubSettingsRoute: typeof AuthenticatedHubSettingsRoute
   AuthenticatedHubUploadRoute: typeof AuthenticatedHubUploadRoute
+  AuthenticatedHubBooksBookIdRoute: typeof AuthenticatedHubBooksBookIdRoute
   AuthenticatedHubLibraryMaterialIdRoute: typeof AuthenticatedHubLibraryMaterialIdRoute
   AuthenticatedHubLibraryIndexRoute: typeof AuthenticatedHubLibraryIndexRoute
 }
@@ -295,6 +316,7 @@ const AuthenticatedHubRouteRouteChildren: AuthenticatedHubRouteRouteChildren = {
   AuthenticatedHubReviewRoute: AuthenticatedHubReviewRoute,
   AuthenticatedHubSettingsRoute: AuthenticatedHubSettingsRoute,
   AuthenticatedHubUploadRoute: AuthenticatedHubUploadRoute,
+  AuthenticatedHubBooksBookIdRoute: AuthenticatedHubBooksBookIdRoute,
   AuthenticatedHubLibraryMaterialIdRoute:
     AuthenticatedHubLibraryMaterialIdRoute,
   AuthenticatedHubLibraryIndexRoute: AuthenticatedHubLibraryIndexRoute,

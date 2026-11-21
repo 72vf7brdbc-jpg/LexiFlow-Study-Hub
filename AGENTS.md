@@ -40,3 +40,6 @@ use the editor.
 - Persist terminal grammar AI access denials in user-scoped storage before allowing further clarification or theory-upgrade calls, avoiding repeated denied requests across reloads.
 - Review progress aggregates paginated persisted vocabulary reviews and grammar attempts over 14 local calendar days; grammar adds no XP unless XP is actually awarded.
 - Every method and custom session share the lesson chooser and pure lesson scoping; a material link only preselects that lesson, and method-specific size limits remain in the pure study modules.
+- PDF books upload directly to private storage in resumable chunks; browser-only PDF.js extracts bounded page ranges, rendering scanned pages for the existing authenticated material AI call, so entire books never enter server requests.
+- Books and their pending page ranges persist separately from generated materials; generation claims one part atomically and links a normal lesson only after saving vocabulary and grammar, preserving all review methods and avoiding duplicate concurrent AI work.
+- TUS sets the current bearer only in onBeforeRequest, not initial headers, because preview mediation must not rewrite the storage session; resumable fingerprints are scoped to the signed-in owner.

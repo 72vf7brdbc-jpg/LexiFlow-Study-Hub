@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      book_lessons: {
+        Row: {
+          book_id: string
+          error_message: string | null
+          id: string
+          material_id: string | null
+          page_end: number
+          page_start: number
+          part_number: number
+          started_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          page_end: number
+          page_start: number
+          part_number: number
+          started_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          page_end?: number
+          page_start?: number
+          part_number?: number
+          started_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_lessons_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_lessons_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      books: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          mode: string
+          page_count: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          mode: string
+          page_count: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          mode?: string
+          page_count?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cards: {
         Row: {
           cloze: string | null

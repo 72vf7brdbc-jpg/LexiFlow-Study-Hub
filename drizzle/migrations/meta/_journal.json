@@ -43,6 +43,13 @@
       "when": 1795254843438,
       "tag": "0005_grammar_personal_clarifications",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795271341760,
+      "tag": "0006_pdf_books_and_lessons",
+      "breakpoints": true
     }
   ]
 }
