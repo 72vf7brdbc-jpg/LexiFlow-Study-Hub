@@ -1,5 +1,13 @@
 # Roadmap — Lezioni, compiti e Ripasso avanzato
 
+## Completamento richiesto il 21 novembre
+- [x] Progressi reali degli ultimi 14 giorni nel Ripasso, con vocabolario e grammatica
+- [x] Sessione su misura con metodo, lezioni e numero di parole
+- [x] Verificata selezione delle lezioni nei 10 metodi; un link da una lezione consente aggiungerne altre
+- [x] Aggiornate tutte le 4 vecchie regole dell’utente, conservando esercizi e citazioni
+- [x] Verifica autenticata: sessione salvata e progressi riletti; 46 test; nessuno sforamento a 390/636px
+- [ ] Pubblicazione: richiesta dopo verifiche e salvataggio, completamento da confermare
+
 - [x] Schede di grammatica: spiegazioni scolastiche, parole spia e formule leggibili; aggiornamento su richiesta per regole già salvate
 - [x] Chiarimenti AI dalla teoria: salvataggio personale per regola e rilettura
 - [x] Verifica con account temporaneo C1: regola precedente aggiornata, chiarimento salvato/riletto dopo ricaricamento, esercizi conservati, nuova richiesta e nuova lezione; 40 test superati e nessuno sforamento a 390/636px
@@ -16,7 +24,7 @@
 - [ ] Compiti per casa: testo libero → AI li organizza senza inventare, chiede chiarimenti, collega il file
 - [ ] Oggi: banner giorno di lezione + riepilogo compiti / scadenze / prossima lezione
 - [x] Ripasso: "Da fare" in cima, con colore caldo acceso e collegamenti ai compiti delle lezioni
-- [ ] Ripasso futuro: progressi (14 giorni), sessione su misura
+- [x] Ripasso: progressi (14 giorni), sessione su misura
 - [x] Ripasso: tutti i 10 metodi distinti, spiegazioni iniziali e 4 categorie; produzione AI, speaking con autovalutazione e quaderno errori
 - [x] Ripasso: 31 controlli automatici; pagine dei 10 metodi, correzione AI, recupero errori, timer e salvataggi verificati con utente temporaneo; nessun errore di esecuzione e nessuno sforamento sul telefono
 - [ ] Archivio: registro, attività, compiti per lezione; scheda lezione modificabile, apri file

@@ -61,7 +61,7 @@ export function useReviewRecorder(method: MethodId) {
         })
         .finally(() => {
           setPending((n) => n - 1);
-          for (const key of ["review-data", "profile", "stats", "material"]) void queryClient.invalidateQueries({ queryKey: [key] });
+          for (const key of ["review-data", "review-progress", "profile", "stats", "material"]) void queryClient.invalidateQueries({ queryKey: [key] });
         });
     },
     [record, method, queryClient],

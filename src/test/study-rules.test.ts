@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { gradeAnswer } from "@/lib/grading";
-import { sessionSize } from "@/lib/plan";
+import { customSessionCount, sessionSize } from "@/lib/plan";
 import { CEFR_LEVELS } from "@/lib/study-config";
 import { scheduleCard } from "@/lib/srs";
 import { displayedStreak, maxGapDays, nextStreak, xpForAnswer } from "@/lib/streak";
@@ -102,7 +102,7 @@ describe("answer grading", () => {
   });
 });
 
-import { CATEGORIES, METHODS, poolFor, SPEAKING_DURATIONS } from "@/lib/methods";
+import { cardsForLessons, CATEGORIES, METHODS, pickSession, poolFor, sessionMaximum, SPEAKING_DURATIONS } from "@/lib/methods";
 import { buildCollocationRounds, buildRecallItems, buildRetrievalQuestions, buildSynonymItems, buildTranslationItems, errorKindsFor, speakingWordCount } from "@/lib/method-exercises";
 import { mistakeAfterAnswer, mistakePhase } from "@/lib/mistakes";
 import { reviewSchedule } from "@/lib/srs";
@@ -111,6 +111,29 @@ import type { PracticeCard } from "@/lib/practice";
 const WORD: PracticeCard = { id: "word-1", term: "decision", meaning: "decisione", definition: "A choice made after consideration", example: "I made a decision today.", cloze: "I made a _____ today.", kind: "word", synonyms: [], collocations: ["make a decision"], due_at: NOW.toISOString(), repetitions: 2, interval_days: 3, correct_count: 2, incorrect_count: 1, material_id: "lesson-1" };
 
 describe("distinct review methods", () => {
+  it("uses only the one, two or three chosen lessons in every review method", () => {
+    const cards = [WORD, { ...WORD, id: "word-2", material_id: "lesson-2" }, { ...WORD, id: "word-3", material_id: "lesson-3" }, { ...WORD, id: "word-4", material_id: "lesson-4" }];
+    const mistakes = cards.map((card) => ({ id: `mistake-${card.id}`, card_id: card.id, method: "active_recall", answer: "wrong", wrong_count: 1, check_after: null, resolved_at: null, last_wrong_at: NOW.toISOString() }));
+    for (const ids of [["lesson-1"], ["lesson-1", "lesson-2"], ["lesson-1", "lesson-2", "lesson-3"]]) {
+      const scoped = cardsForLessons(cards, ids);
+      expect(scoped.map((card) => card.material_id)).toEqual(ids);
+      for (const method of METHODS) expect(poolFor(method.id, scoped, { now: NOW, mistakes }).map((card) => card.material_id)).toEqual(ids);
+    }
+    expect(cardsForLessons(cards, [])).toHaveLength(4);
+    expect(cardsForLessons(cards, ["missing"])).toEqual([]);
+  });
+  it("honours the selected number without adding words from other lessons", () => {
+    const cards = Array.from({ length: 12 }, (_, index) => ({ ...WORD, id: `word-${index}` }));
+    expect(pickSession("active_recall", cards, () => 0.4, 3)).toHaveLength(3);
+    expect(customSessionCount(10, 2, 3, 5)).toBe(0);
+    expect(customSessionCount(100, 12, 1, 40)).toBe(12);
+  });
+  it("keeps speaking at three to five words and a custom translation session inside the supported preparation size", () => {
+    expect(sessionMaximum("speaking_challenge")).toBe(5);
+    expect(customSessionCount(2, 10, 3, sessionMaximum("speaking_challenge"))).toBe(3);
+    expect(customSessionCount(20, 10, 3, sessionMaximum("speaking_challenge"))).toBe(5);
+    expect(sessionMaximum("translation_practice")).toBe(12);
+  });
   it("groups all ten methods in the four requested categories", () => {
     expect(CATEGORIES.map((c) => c.id)).toEqual(["memorizzazione", "vocabolario", "produzione", "consolidamento"]);
     expect(METHODS.filter((m) => m.category === "memorizzazione").map((m) => m.id)).toEqual(["active_recall", "spaced_repetition", "retrieval_practice"]);

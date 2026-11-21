@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import ReviewSection from "@/components/lexi/ReviewSection";
 import { InlineError, LoadingScreen } from "@/components/lexi/ui-bits";
 import { isMethodId, type MethodId } from "@/lib/methods";
-import { reviewDataQuery } from "@/lib/queries";
+import { reviewDataQuery, reviewProgressQuery } from "@/lib/queries";
 import { grammarQuery } from "@/lib/grammar-queries";
 
 type ReviewSearch = { method?: MethodId | undefined; mode?: "practice" | undefined; material?: string | undefined };
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/_hub/review")({
     mode: s["mode"] === "practice" ? "practice" : undefined,
     material: typeof s["material"] === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s["material"]) ? s["material"] : undefined,
   }),
-  loader: ({ context }) => Promise.all([context.queryClient.ensureQueryData(reviewDataQuery), context.queryClient.ensureQueryData(grammarQuery)]),
+  loader: ({ context }) => Promise.all([context.queryClient.ensureQueryData(reviewDataQuery), context.queryClient.ensureQueryData(grammarQuery), context.queryClient.ensureQueryData(reviewProgressQuery)]),
   head: () => ({ meta: [
     { title: "Ripasso — LexiFlow Study Hub" },
     { name: "description", content: "Ripassa la grammatica con teoria ed esercizi dedicati, insieme ai dieci metodi sulle parole delle tue lezioni." },
@@ -30,5 +30,5 @@ function ReviewPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const { data } = useSuspenseQuery(reviewDataQuery);
-  return <ReviewSection data={data} method={search.method} material={search.material} onSelect={(method) => { void navigate({ to: "/review", search: { material: search.material, method } }); }} onClearMaterial={() => { void navigate({ to: "/review", search: { method: search.method } }); }} />;
+  return <ReviewSection key={search.material ?? "all"} data={data} method={search.method} material={search.material} onSelect={(method) => { void navigate({ to: "/review", search: { material: search.material, method } }); }} onClearMaterial={() => { void navigate({ to: "/review", search: { method: search.method } }); }} />;
 }

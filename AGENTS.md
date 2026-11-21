@@ -38,3 +38,5 @@ use the editor.
 - Grammar uses separate user-owned rules and attempts, with validated structured theory/exercises; extraction shares the upload AI call and requires a literal source quote so lesson attribution is evidenced, while manual requests stay explicitly separate.
 - Grammar teaching is an optional validated extension of existing content, upgraded only on user action without replacing exercises or lesson evidence; personal clarifications are owner-scoped rows tied to the rule so they survive reloads.
 - Persist terminal grammar AI access denials in user-scoped storage before allowing further clarification or theory-upgrade calls, avoiding repeated denied requests across reloads.
+- Review progress aggregates paginated persisted vocabulary reviews and grammar attempts over 14 local calendar days; grammar adds no XP unless XP is actually awarded.
+- Every method and custom session share the lesson chooser and pure lesson scoping; a material link only preselects that lesson, and method-specific size limits remain in the pure study modules.

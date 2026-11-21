@@ -3,7 +3,7 @@ import { Loader2, Pause, Play, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { InlineError, Stamp } from "@/components/lexi/ui-bits";
-import { buildSynonymItems, speakingTopic, speakingWordCount } from "@/lib/method-exercises";
+import { buildSynonymItems, speakingTopic } from "@/lib/method-exercises";
 import { coachCountsAsCorrect, SPEAKING_DURATIONS } from "@/lib/methods";
 import { useCoach, type SessionProps } from "./hooks";
 import { AnswerArea, CoachFeedback, coachHeading, PromptCard, ResultPanel, SessionHeader, SessionSummary, SpeakButton, useReviewRecorder, xpForAnswer } from "./session-kit";
@@ -55,7 +55,7 @@ function WritingSession({ cards, onExit, onRestart, method }: SessionProps & { m
 
 export function SpeakingSession({ cards, data, onExit, onRestart }: SessionProps) {
   const rec = useReviewRecorder("speaking_challenge");
-  const [words] = useState(() => cards.slice(0, speakingWordCount(cards.length)));
+  const [words] = useState(() => cards.slice(0, 5));
   const [duration, setDuration] = useState<number>(60);
   const [remaining, setRemaining] = useState(60);
   const [stage, setStage] = useState<"ready" | "speaking" | "assess" | "done">("ready");

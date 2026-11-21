@@ -4,6 +4,7 @@ import { startOfWeek } from "date-fns";
 
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { progressStart, type StudyActivity } from "./review-progress";
 
 export type Profile = Tables<"profiles">;
 export type Material = Tables<"materials">;
@@ -248,6 +249,37 @@ export const reviewDataQuery = queryOptions({
     if (mistakes.error) throw mistakes.error;
     if (tasks.error) throw tasks.error;
     return { cards: cards.data ?? [], materials: materials.data ?? [], mistakes: mistakes.data ?? [], tasks: tasks.data ?? [] };
+  },
+  staleTime: 15_000,
+});
+
+/** Read every persisted answer in the window, not a truncated preview of activity. */
+export const reviewProgressQuery = queryOptions({
+  queryKey: ["review-progress"],
+  queryFn: async (): Promise<StudyActivity[]> => {
+    await requireUserId();
+    const since = progressStart(new Date()).toISOString();
+    const vocabulary: StudyActivity[] = [];
+    const grammar: StudyActivity[] = [];
+    await Promise.all([
+      (async () => {
+        for (let offset = 0; ; offset += 500) {
+          const { data, error } = await supabase.from("reviews").select("id, created_at, correct, xp").gte("created_at", since).order("created_at").order("id").range(offset, offset + 499);
+          if (error) throw error;
+          vocabulary.push(...(data ?? []).map((row) => ({ created_at: row.created_at, correct: row.correct, xp: row.xp, kind: "vocabulary" as const })));
+          if (!data || data.length < 500) break;
+        }
+      })(),
+      (async () => {
+        for (let offset = 0; ; offset += 500) {
+          const { data, error } = await supabase.from("grammar_attempts").select("id, created_at, correct").gte("created_at", since).order("created_at").order("id").range(offset, offset + 499);
+          if (error) throw error;
+          grammar.push(...(data ?? []).map((row) => ({ created_at: row.created_at, correct: row.correct, xp: 0, kind: "grammar" as const })));
+          if (!data || data.length < 500) break;
+        }
+      })(),
+    ]);
+    return [...vocabulary, ...grammar];
   },
   staleTime: 15_000,
 });

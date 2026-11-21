@@ -4,6 +4,7 @@
 
 import { isMistakeActive, type MistakeState } from "./mistakes";
 import { shuffle, splitAround, type PracticeCard } from "./practice";
+import { customSessionCount } from "./plan";
 
 export type MethodId =
   | "active_recall"
@@ -215,7 +216,7 @@ export function poolFor<T extends PracticeCard>(
 }
 
 /** Picks the words for a session: due and difficult first, then a fresh order. */
-export function pickSession<T extends PracticeCard>(method: MethodId, pool: readonly T[], rng: () => number = Math.random): T[] {
+export function pickSession<T extends PracticeCard>(method: MethodId, pool: readonly T[], rng: () => number = Math.random, requested?: number): T[] {
   const info = methodInfo(method);
   const now = Date.now();
   const scored = pool.map((c) => ({
@@ -224,8 +225,18 @@ export function pickSession<T extends PracticeCard>(method: MethodId, pool: read
   }));
   if (method === "spaced_repetition") scored.sort((a, b) => new Date(a.c.due_at).getTime() - new Date(b.c.due_at).getTime());
   else scored.sort((a, b) => b.s - a.s);
-  const chosen = scored.slice(0, info.size).map((x) => x.c);
+  const count = customSessionCount(requested ?? info.size, pool.length, info.min, sessionMaximum(method));
+  const chosen = scored.slice(0, count).map((x) => x.c);
   return method === "spaced_repetition" ? chosen : shuffle(chosen, rng);
+}
+
+export function sessionMaximum(method: MethodId): number {
+  return method === "speaking_challenge" ? 5 : method === "translation_practice" ? 12 : 40;
+}
+
+/** A route-level lesson is a default, not a hidden restriction on the chooser. */
+export function cardsForLessons<T extends { material_id: string | null }>(cards: readonly T[], lessonIds: readonly string[]): T[] {
+  return lessonIds.length ? cards.filter((card) => card.material_id !== null && lessonIds.includes(card.material_id)) : [...cards];
 }
 
 export function endOfLocalDay(now: Date = new Date()): Date {

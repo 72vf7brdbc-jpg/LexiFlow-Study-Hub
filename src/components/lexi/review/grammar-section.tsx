@@ -62,7 +62,7 @@ export function GrammarWorkspace({ onClose, material }: { onClose: () => void; m
     try {
       const result = await check({ data: { ruleId: rule.id, index, answer } });
       if (!result.ok) { setError(result.message); return; }
-      setFeedback(result.result); setResults((prev) => [...prev, result.result]); await refresh();
+      setFeedback(result.result); setResults((prev) => [...prev, result.result]); await refresh(); await queryClient.invalidateQueries({ queryKey: ["review-progress"] });
     } catch { setError("Non è stato possibile correggere e salvare la risposta. Riprova."); }
     finally { setBusy(false); }
   }

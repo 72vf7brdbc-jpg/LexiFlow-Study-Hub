@@ -19,3 +19,10 @@ export function weeklyMinutes(level: string | null | undefined, daysPerWeek: num
   const days = Math.min(7, Math.max(1, daysPerWeek ?? 5));
   return Math.round((sessionSize(level, days) * 40 * days) / 60);
 }
+
+/** Keep custom sessions inside the method's limits; never pad with other lessons. */
+export function customSessionCount(requested: number, available: number, minimum: number, maximum: number): number {
+  if (available < minimum) return 0;
+  const count = Number.isFinite(requested) ? Math.round(requested) : minimum;
+  return Math.min(available, maximum, Math.max(minimum, count));
+}
