@@ -91,6 +91,24 @@ export type Database = {
           },
         ]
       }
+      grammar_ai_blocks: {
+        Row: {
+          created_at: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       grammar_attempts: {
         Row: {
           answer: string
@@ -125,6 +143,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "grammar_attempts_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "grammar_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grammar_notes: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          question: string
+          rule_id: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          question: string
+          rule_id: string
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          question?: string
+          rule_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grammar_notes_rule_id_fkey"
             columns: ["rule_id"]
             isOneToOne: false
             referencedRelation: "grammar_rules"

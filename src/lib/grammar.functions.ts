@@ -1,22 +1,23 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { grammarContentSchema, type GrammarRule } from "./grammar";
-import { evaluateGrammar, generateGrammar } from "./ai/grammar.server";
+import { grammarContentSchema, grammarQuestionSchema, withGrammarTeaching, type GrammarRule } from "./grammar";
+import { clarifyGrammar, evaluateGrammar, explainGrammar, generateGrammar } from "./ai/grammar.server";
 
 export const getGrammar = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
-  const [rules, attempts, lessons] = await Promise.all([
+  const [rules, attempts, lessons, notes] = await Promise.all([
     context.supabase.from("grammar_rules").select("*").order("created_at", { ascending: false }),
     context.supabase.from("grammar_attempts").select("rule_id, correct").order("created_at", { ascending: false }).limit(3000),
     context.supabase.from("materials").select("id, title, grammar_extracted_at").order("created_at", { ascending: false }).limit(500),
+    context.supabase.from("grammar_notes").select("id, rule_id, question, answer, created_at").order("created_at", { ascending: false }),
   ]);
-  if (rules.error || attempts.error || lessons.error) throw new Error("Non è stato possibile caricare la grammatica.");
+  if (rules.error || attempts.error || lessons.error || notes.error) throw new Error("Non è stato possibile caricare la grammatica.");
   const parsed: GrammarRule[] = [];
   for (const row of rules.data ?? []) {
     const content = grammarContentSchema.safeParse(row.content);
     if (content.success && (row.source === "lesson" || row.source === "request" || row.source === "manual")) parsed.push({ ...row, source: row.source, content: content.data });
   }
-  return { rules: parsed, attempts: attempts.data ?? [], lessons: lessons.data ?? [] };
+  return { rules: parsed, attempts: attempts.data ?? [], lessons: lessons.data ?? [], notes: notes.data ?? [] };
 });
 export const addGrammar = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ source: z.enum(["lesson", "request", "manual"]), text: z.string().trim().max(12000).optional(), materialId: z.string().uuid().optional() }).parse(data))
@@ -67,4 +68,44 @@ export const deleteGrammar = createServerFn({ method: "POST" }).middleware([requ
     const { error } = await context.supabase.from("grammar_rules").delete().eq("id", data.ruleId);
     if (error) throw new Error("Non è stato possibile eliminare la regola.");
     return { ok: true };
+  });
+
+export const improveGrammarTheory = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ ruleId: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase.from("grammar_rules").select("content, level").eq("id", data.ruleId).eq("user_id", context.userId).maybeSingle();
+    const parsed = grammarContentSchema.safeParse(row?.content);
+    if (!parsed.success || !row) return { ok: false as const, message: "Regola non trovata." };
+    if (parsed.data.teaching) return { ok: true as const, content: parsed.data };
+    const block = await context.supabase.from("grammar_ai_blocks").select("message").eq("user_id", context.userId).maybeSingle();
+    if (block.error) return { ok: false as const, message: "Non è stato possibile verificare la disponibilità dell’AI." };
+    if (block.data) return { ok: false as const, message: block.data.message };
+    const result = await explainGrammar(parsed.data, row.level);
+    if (!result.ok) {
+      if (result.blocked) await context.supabase.from("grammar_ai_blocks").upsert({ user_id: context.userId, message: result.message });
+      return result;
+    }
+    const content = withGrammarTeaching(parsed.data, result.teaching);
+    const { error } = await context.supabase.from("grammar_rules").update({ content }).eq("id", data.ruleId).eq("user_id", context.userId);
+    if (error) return { ok: false as const, message: "Non è stato possibile salvare la spiegazione aggiornata." };
+    return { ok: true as const, content };
+  });
+
+export const askGrammarClarification = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => grammarQuestionSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase.from("grammar_rules").select("content, level").eq("id", data.ruleId).eq("user_id", context.userId).maybeSingle();
+    const parsed = grammarContentSchema.safeParse(row?.content);
+    if (!parsed.success || !row) return { ok: false as const, message: "Regola non trovata." };
+    const block = await context.supabase.from("grammar_ai_blocks").select("message").eq("user_id", context.userId).maybeSingle();
+    if (block.error) return { ok: false as const, message: "Non è stato possibile verificare la disponibilità dell’AI." };
+    if (block.data) return { ok: false as const, message: block.data.message };
+    const result = await clarifyGrammar(parsed.data, row.level, data.question);
+    if (!result.ok) {
+      if (result.blocked) await context.supabase.from("grammar_ai_blocks").upsert({ user_id: context.userId, message: result.message });
+      return result;
+    }
+    const { data: note, error } = await context.supabase.from("grammar_notes").insert({ user_id: context.userId, rule_id: data.ruleId, question: data.question, answer: result.answer }).select("id, rule_id, question, answer, created_at").single();
+    if (error || !note) return { ok: false as const, message: "Il chiarimento non è stato salvato. La tua domanda è rimasta qui." };
+    return { ok: true as const, note };
   });

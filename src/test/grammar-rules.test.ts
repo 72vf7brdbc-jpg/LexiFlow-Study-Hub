@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GRAMMAR_KINDS, grammarContentSchema, grammarProgress, supportedGrammarRules, type GrammarContent } from "@/lib/grammar";
+import { GRAMMAR_KINDS, grammarContentSchema, grammarProgress, grammarQuestionSchema, notesForGrammarRule, supportedGrammarRules, withGrammarTeaching, type GrammarContent } from "@/lib/grammar";
 
 const rule: GrammarContent = {
   title: "Present perfect", overview: "Un evento passato con un legame con il presente.", formation: "have/has + past participle", uses: ["Esperienze"],
@@ -34,5 +34,22 @@ describe("grammar learning rules", () => {
   it("shows grammar progress only for the chosen rule", () => {
     expect(grammarProgress([{ rule_id: "one", correct: true }, { rule_id: "one", correct: false }, { rule_id: "other", correct: true }], "one")).toEqual({ answered: 2, correct: 1, accuracy: 50 });
     expect(grammarProgress([], "one").accuracy).toBeNull();
+  });
+  it("keeps lesson evidence and existing exercises when making theory clearer", () => {
+    const updated = withGrammarTeaching(rule, { overview: "Un’esperienza passata senza indicare quando.", recognition: "Guarda il legame con il presente.", markers: [{ term: "ever", explanation: "Nelle domande sulle esperienze." }], forms: [{ label: "Affermativa", pattern: "Soggetto + have/has + participio passato", example: "She has visited Rome.", translation: "Ha visitato Roma." }], formation_notes: ["Il participio di visit è visited."] });
+    expect(updated.source_quote).toBe(rule.source_quote);
+    expect(updated.exercises).toEqual(rule.exercises);
+    expect(updated.teaching?.forms[0]?.pattern).toBe("Soggetto + have/has + participio passato");
+    expect(grammarContentSchema.safeParse(rule).success).toBe(true);
+  });
+  it("returns personal clarifications only for their own rule in newest-first order", () => {
+    const base = { question: "Quando usarlo?", answer: "Quando c’è un legame con il presente." };
+    expect(notesForGrammarRule([{ ...base, id: "old", rule_id: "one", created_at: "2026-11-20" }, { ...base, id: "other", rule_id: "two", created_at: "2026-11-22" }, { ...base, id: "new", rule_id: "one", created_at: "2026-11-21" }], "one").map((note) => note.id)).toEqual(["new", "old"]);
+  });
+  it("requires a real question and a valid rule reference", () => {
+    const ruleId = "12345678-1234-4234-8234-123456789abc";
+    expect(grammarQuestionSchema.safeParse({ ruleId, question: "Perché si usa has?" }).success).toBe(true);
+    expect(grammarQuestionSchema.safeParse({ ruleId, question: "  " }).success).toBe(false);
+    expect(grammarQuestionSchema.safeParse({ ruleId: "missing", question: "Perché has?" }).success).toBe(false);
   });
 });

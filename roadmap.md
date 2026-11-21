@@ -1,5 +1,9 @@
 # Roadmap — Lezioni, compiti e Ripasso avanzato
 
+- [x] Schede di grammatica: spiegazioni scolastiche, parole spia e formule leggibili; aggiornamento su richiesta per regole già salvate
+- [x] Chiarimenti AI dalla teoria: salvataggio personale per regola e rilettura
+- [x] Verifica con account temporaneo C1: regola precedente aggiornata, chiarimento salvato/riletto dopo ricaricamento, esercizi conservati, nuova richiesta e nuova lezione; 40 test superati e nessuno sforamento a 390/636px
+
 - [x] Grammatica: estrazione automatica dai nuovi materiali (anche file multipli) e recupero dalle lezioni già salvate
 - [x] Grammatica: riquadro rosso al primo posto, teoria consultabile e regole manuali/su richiesta
 - [x] Grammatica: esercizi dedicati, correzioni motivate e salvataggio dei risultati

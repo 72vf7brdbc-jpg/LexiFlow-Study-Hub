@@ -36,3 +36,5 @@ use the editor.
 
 - ReviewSection dispatches to dedicated method sessions in `src/components/lexi/review/`; method eligibility and exercise builders stay in pure library modules so one generic drill cannot replace distinct methods.
 - Grammar uses separate user-owned rules and attempts, with validated structured theory/exercises; extraction shares the upload AI call and requires a literal source quote so lesson attribution is evidenced, while manual requests stay explicitly separate.
+- Grammar teaching is an optional validated extension of existing content, upgraded only on user action without replacing exercises or lesson evidence; personal clarifications are owner-scoped rows tied to the rule so they survive reloads.
+- Persist terminal grammar AI access denials in user-scoped storage before allowing further clarification or theory-upgrade calls, avoiding repeated denied requests across reloads.

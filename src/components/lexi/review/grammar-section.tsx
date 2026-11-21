@@ -9,6 +9,7 @@ import { grammarQuery } from "@/lib/grammar-queries";
 import { addGrammar, checkGrammar } from "@/lib/grammar.functions";
 import { grammarProgress, type GrammarRule } from "@/lib/grammar";
 import { cn } from "@/lib/utils";
+import { GrammarTheory } from "./grammar-theory";
 
 export function GrammarBanner({ onOpen }: { onOpen: () => void }) {
   const { data } = useSuspenseQuery(grammarQuery);
@@ -66,6 +67,7 @@ export function GrammarWorkspace({ onClose, material }: { onClose: () => void; m
     finally { setBusy(false); }
   }
   const exercise = rule?.content.exercises[index];
+  const currentRule = data.rules.find((item) => item.id === rule?.id) ?? rule;
   const filtered = data.rules.filter((r) => (!material || r.material_id === material || r.material_id === null) && r.title.toLowerCase().includes(search.toLowerCase()));
   return <div className="mx-auto max-w-4xl pb-12 animate-rise">
     <Button variant="ghost" onClick={back} disabled={busy}><ArrowLeft />{view === "list" ? "Torna al Ripasso" : "Il quaderno di grammatica"}</Button>
@@ -85,16 +87,7 @@ export function GrammarWorkspace({ onClose, material }: { onClose: () => void; m
       {source === "lesson" ? <div className="space-y-2"><label htmlFor="grammar-lesson" className="text-sm font-semibold">Lezione</label><select id="grammar-lesson" value={lessonId} onChange={(e) => setLessonId(e.target.value)} disabled={busy} className="h-12 w-full min-w-0 rounded-lg border border-input bg-paper px-3 text-sm"><option value="">Scegli una lezione</option>{data.lessons.filter((l) => !l.grammar_extracted_at).map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}</select>{data.lessons.every((l) => l.grammar_extracted_at) && <p className="text-sm text-muted-foreground">Non ci sono lezioni ancora da analizzare.</p>}</div> : <div className="space-y-5"><div className="space-y-2"><label htmlFor="grammar-topic" className="text-sm font-semibold">Argomento o dubbio</label><Input id="grammar-topic" value={topic} maxLength={500} onChange={(e) => setTopic(e.target.value)} placeholder="Es. Present perfect e past simple: quando usarli?" disabled={busy} /></div>{source === "manual" && <div className="space-y-2"><label htmlFor="grammar-notes" className="text-sm font-semibold">La tua regola o gli appunti della slide</label><Textarea id="grammar-notes" value={notes} maxLength={10000} onChange={(e) => setNotes(e.target.value)} placeholder="Scrivi la spiegazione che vuoi approfondire…" className="min-h-40" disabled={busy} /></div>}</div>}
       <Button variant="grammar" onClick={create} disabled={busy || (source === "lesson" ? !lessonId : topic.trim().length < 3 || (source === "manual" && notes.trim().length < 3))}>{busy ? <Loader2 className="animate-spin" /> : <Sparkles />}{busy ? "Preparo teoria ed esercizi…" : source === "lesson" ? "Estrai la grammatica" : "Aggiungi al quaderno"}</Button>
     </div>}
-    {view === "theory" && rule && <article className="mt-7 space-y-7">
-      <div className="flex flex-wrap gap-2 text-xs text-grammar"><span>{rule.level}</span><span>·</span><span>{rule.source === "lesson" ? "Dalla lezione, con approfondimenti AI" : "Approfondimento AI su tua richiesta"}</span></div>
-      {rule.content.source_quote && <div className="border-l-2 border-grammar pl-4"><p className="text-xs font-semibold text-grammar">Dalla tua lezione</p><blockquote className="mt-2 whitespace-pre-line text-sm italic text-muted-foreground">{rule.content.source_quote}</blockquote></div>}
-      <div><h2 className="font-display text-xl">Quando e perché</h2><p className="mt-3 whitespace-pre-line leading-relaxed">{rule.content.overview}</p></div>
-      <div className="border-y border-border py-5"><h2 className="font-display text-xl">Come si forma</h2><p className="mt-3 whitespace-pre-line leading-relaxed">{rule.content.formation}</p></div>
-      <div><h2 className="font-display text-xl">Usi e sfumature</h2><ul className="mt-3 list-disc space-y-3 pl-5">{rule.content.uses.map((use, i) => <li key={i} className="leading-relaxed">{use}</li>)}</ul></div>
-      <div><h2 className="font-display text-xl">Esempi</h2><div className="mt-3 divide-y divide-border">{rule.content.examples.map((example, i) => <div key={i} className="py-4"><p className="font-semibold">{example.en}</p><p className="mt-1 text-sm text-muted-foreground">{example.it}</p></div>)}</div></div>
-      {rule.content.pitfalls.length > 0 && <div className="border-l-2 border-grammar pl-4"><h2 className="font-display text-xl">Attenzione a…</h2><ul className="mt-3 space-y-3">{rule.content.pitfalls.map((pitfall, i) => <li key={i} className="text-sm leading-relaxed">{pitfall}</li>)}</ul></div>}
-      <Button variant="grammar" size="lg" onClick={resetPractice}>Passa agli esercizi <ArrowRight /></Button>
-    </article>}
+    {view === "theory" && currentRule && <GrammarTheory key={currentRule.id} rule={currentRule} notes={data.notes} onPractice={resetPractice} refresh={refresh} />}
     {view === "practice" && rule && exercise && <div className="mt-7 space-y-6">
       <div className="flex items-center justify-between text-sm"><span className="font-mono text-grammar">{index + 1} / {rule.content.exercises.length}</span><Button variant="ghost" onClick={() => setView("theory")} disabled={busy}>Rivedi la teoria <BookOpen /></Button></div>
       <h2 className="font-display text-xl">{exerciseNames[exercise.kind]}</h2><p className="whitespace-pre-line text-lg leading-relaxed">{exercise.prompt}</p>
