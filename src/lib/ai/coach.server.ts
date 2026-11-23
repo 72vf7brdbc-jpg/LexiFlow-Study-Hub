@@ -3,7 +3,7 @@
 import { APICallError, NoObjectGeneratedError, Output, jsonSchema, streamText } from "ai";
 import { z } from "zod";
 
-import { COACH_MODEL, createResponsesProvider, friendlyAiError, getLovableApiKey } from "./gateway.server";
+import { COACH_MODEL, createResponsesProvider, friendlyAiError, getPersonalApiKey } from "./provider.server";
 
 export type CoachCard = { term: string; meaning: string; definition: string | null; example: string | null };
 
@@ -129,16 +129,6 @@ function taskPrompt(task: CoachTask, card: CoachCard): string {
 
 export type CoachResult = { ok: true; result: CoachVerdict } | { ok: false; message: string };
 
-const OPTIONS = {
-  openai: {
-    forceReasoning: true,
-    reasoningEffort: "low",
-    reasoningSummary: "auto",
-    store: false,
-    include: ["reasoning.encrypted_content"],
-  },
-} as const;
-
 function failure(error: unknown, fallback: string): { ok: false; message: string } {
   if (NoObjectGeneratedError.isInstance(error)) {
     console.error("coach: no object", error.message);
@@ -147,23 +137,22 @@ function failure(error: unknown, fallback: string): { ok: false; message: string
   const api = APICallError.isInstance(error) ? error : APICallError.isInstance((error as { cause?: unknown })?.cause) ? ((error as { cause: APICallError }).cause) : null;
   if (api) {
     console.error("coach: gateway error", api.statusCode, api.responseBody?.slice(0, 300));
-    if (api.statusCode === 402) return { ok: false, message: "I crediti AI sono esauriti: aggiungi crediti per usare la correzione automatica." };
+    if (api.statusCode === 402) return { ok: false, message: "Il servizio AI personale richiede credito sul tuo account OpenAI, non crediti Lovable." };
     return { ok: false, message: friendlyAiError(api.statusCode, fallback) };
   }
   console.error("coach failed", error);
-  return { ok: false, message: fallback };
+  return { ok: false, message: error instanceof Error ? error.message : fallback };
 }
 
 export async function evaluateWithCoach(task: CoachTask, card: CoachCard, level: string | null): Promise<CoachResult> {
-  const provider = createResponsesProvider(getLovableApiKey());
   try {
+    const provider = createResponsesProvider(getPersonalApiKey());
     const result = streamText({
       model: provider.responses(COACH_MODEL),
       instructions: `${BASE}\nLearner CEFR level: ${level ?? "B1"}.\n${taskInstructions(task)}`,
       prompt: taskPrompt(task, card),
       output: Output.object({ schema: coachWire }),
       maxRetries: 0,
-      providerOptions: OPTIONS,
     });
     const parsed = coachSchema.safeParse(await result.output);
     if (!parsed.success) {
@@ -200,8 +189,8 @@ export type TranslateResult = { ok: true; items: { id: string; it: string }[] } 
 
 /** Natural Italian versions of the learner's lesson sentences, for Italian → English practice. */
 export async function italianVersions(sentences: { id: string; en: string }[]): Promise<TranslateResult> {
-  const provider = createResponsesProvider(getLovableApiKey());
   try {
+    const provider = createResponsesProvider(getPersonalApiKey());
     const result = streamText({
       model: provider.responses(COACH_MODEL),
       instructions:
@@ -209,7 +198,6 @@ export async function italianVersions(sentences: { id: string; en: string }[]): 
       prompt: JSON.stringify(sentences),
       output: Output.object({ schema: translationWire }),
       maxRetries: 0,
-      providerOptions: OPTIONS,
     });
     const parsed = translationSchema.safeParse(await result.output);
     if (!parsed.success) return { ok: false, message: "Non sono riuscito a preparare le frasi. Riprova." };

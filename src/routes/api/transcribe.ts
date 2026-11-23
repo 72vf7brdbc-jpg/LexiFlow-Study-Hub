@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
-import { AI_GATEWAY_URL, TRANSCRIBE_MODEL, friendlyAiError } from "@/lib/ai/gateway.server";
+import { PROVIDER_URL, TRANSCRIBE_MODEL, friendlyAiError } from "@/lib/ai/provider.server";
 
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
 
@@ -52,8 +52,8 @@ export const Route = createFileRoute("/api/transcribe")({
         if (file.size > MAX_AUDIO_BYTES) return json(413, { error: "Registrazione troppo lunga." });
         if (!file.type.startsWith("audio/")) return json(400, { error: "Formato audio non supportato." });
 
-        const apiKey = process.env["LOVABLE_API_KEY"];
-        if (!apiKey) return json(500, { error: "Servizio vocale non configurato." });
+        const apiKey = process.env["OPENAI_API_KEY"];
+        if (!apiKey) return json(503, { error: "Trascrizione personale non configurata. Usa la tastiera o la dettatura del telefono." });
 
         const upstream = new FormData();
         upstream.append("model", TRANSCRIBE_MODEL);
@@ -62,9 +62,9 @@ export const Route = createFileRoute("/api/transcribe")({
         upstream.append("stream", "true");
         upstream.append("prompt", "A language learner says an English word, phrase or short sentence for a vocabulary exercise.");
 
-        const res = await fetch(`${AI_GATEWAY_URL}/v1/audio/transcriptions`, {
+        const res = await fetch(`${PROVIDER_URL}/v1/audio/transcriptions`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}`, "X-Lovable-AIG-SDK": "fetch" },
+          headers: { Authorization: `Bearer ${apiKey}` },
           body: upstream,
           signal: request.signal,
         });

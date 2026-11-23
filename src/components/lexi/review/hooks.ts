@@ -1,8 +1,7 @@
 // Small state helpers shared by the Ripasso sessions.
-import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useState } from "react";
 
-import { coachEvaluate, type CoachVerdict } from "@/lib/coach.functions";
+import { type CoachVerdict } from "@/lib/coach.functions";
 import type { ReviewCard, ReviewData } from "@/lib/queries";
 
 export type SessionProps = {
@@ -43,35 +42,15 @@ export type CoachPayload =
   | { method: "contextual_learning"; cardId: string; meaning: string; register: "formale" | "informale" | "neutro"; sentence: string }
   | { method: "translation_practice"; cardId: string; direction: "it_en" | "en_it"; source: string; answer: string };
 
-/** Sends an open answer to the AI coach and keeps its verdict. */
+/** Open production is self-assessed, never sent to a metered AI service. */
 export function useCoach() {
-  const evaluate = useServerFn(coachEvaluate);
-  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CoachVerdict | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const run = useCallback(
-    async (payload: CoachPayload) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await evaluate({ data: payload });
-        if (res.ok) setResult(res.result);
-        else setError(res.message);
-      } catch {
-        setError("La correzione non è disponibile in questo momento. Riprova tra poco.");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [evaluate],
-  );
-
-  const reset = useCallback(() => {
-    setResult(null);
-    setError(null);
-    setLoading(false);
+  const [assessing, setAssessing] = useState(false);
+  const run = useCallback(async (_payload: CoachPayload) => { setAssessing(true); }, []);
+  const assess = useCallback((correct: boolean) => {
+    setResult({ verdict: correct ? "correct" : "wrong", feedback: "Risultato confermato con autovalutazione.", checks: [], suggestion: null, literal: null, actual_register: null });
+    setAssessing(false);
   }, []);
-
-  return { run, loading, result, error, reset };
+  const reset = useCallback(() => { setResult(null); setAssessing(false); }, []);
+  return { run, loading: false, result, error: null as string | null, reset, assessing, assess };
 }

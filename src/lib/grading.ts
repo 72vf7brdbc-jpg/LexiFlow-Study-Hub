@@ -4,6 +4,31 @@
 
 export type GradeMode = "typed" | "voice";
 
+/** Grammar matching is exact: a typo in a verb can change the targeted rule. */
+export function gradeGrammarAnswer(exercise: { kind: string; prompt: string; answer: string; explanation: string }, answer: string) {
+  const normalize = (text: string) => normalizeAnswer(text).replace(/\b(can)'t\b/g, "cannot").replace(/\bwon't\b/g, "will not").replace(/\b([a-z]+)n't\b/g, "$1 not");
+  const value = normalize(answer);
+  const expected = normalize(exercise.answer);
+  let matches = !!value && value === expected;
+  if (!matches && value && exercise.kind === "gap") {
+    // Use only the English sentence containing the blank; strip a trailing verb cue.
+    const line = exercise.prompt.split(/\n/).find((part) => /_{3,}/.test(part)) ?? "";
+    const sentence = line.replace(/^.*?:\s*/, "").replace(/\([^)]*\)/g, "").trim();
+    if ((sentence.match(/_{3,}/g) ?? []).length === 1) {
+      const [before = "", after = ""] = sentence.split(/_{3,}/);
+      const completed = normalize(`${before} ${exercise.answer} ${after}`);
+      matches = value === completed;
+      const prefix = normalize(before);
+      const suffix = normalize(after);
+      if (!matches && expected.startsWith(`${prefix} `) && (!suffix || expected.endsWith(` ${suffix}`))) {
+        const missing = expected.slice(prefix ? prefix.length + 1 : 0, suffix ? -(suffix.length + 1) : undefined);
+        matches = value === missing;
+      }
+    }
+  }
+  return { correct: matches, needsAssessment: !matches && exercise.kind !== "choice", feedback: exercise.explanation, natural_answer: exercise.answer };
+}
+
 export type GradeResult = {
   correct: boolean;
   close: boolean;

@@ -1,5 +1,12 @@
 # Roadmap — Lezioni, compiti e Ripasso avanzato
 
+## Indipendenza dai crediti AI
+- [ ] Correzioni grammaticali locali, autovalutazione delle alternative e tentativi salvati
+- [ ] Produzione libera con autovalutazione e traduzioni dai vocaboli già salvati, senza chiamate AI
+- [ ] Rimuovere tutte le chiamate al gateway; preparare Google Gemini personale per analisi e chiarimenti
+- [ ] Inserimento manuale di lezioni, vocaboli, teoria ed esercizi senza AI
+- [ ] Verifiche automatiche e percorso autenticato; chiave personale e pubblicazione da confermare
+
 ## Libri PDF
 - [x] Caricamento privato riprendibile fino al limite reale di 5 GB; prova reale con PDF da 17,3 MB
 - [x] Scelta tra parti automatiche da 15 pagine e intervallo mirato

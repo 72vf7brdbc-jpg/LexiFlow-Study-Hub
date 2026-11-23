@@ -19,8 +19,7 @@ use the editor.
   Ask Lovable to change the schema.
 - **Generated files.** Do not edit a file whose header says it is automatically
   generated.
-- **AI gateway.** Keep model calls on Lovable's gateway, and keep
-  `LOVABLE_API_KEY` out of browser code.
+- **AI credentials.** Keep all provider credentials server-side; this app uses an owner-supplied provider key instead of metered platform AI.
 - **Connectors.** Lovable provides native connectors. `list_connectors` shows
   which are enabled; `add_connector` only returns the dashboard link. When a
   connector is enabled, calls go through the connector gateway and need
@@ -43,3 +42,8 @@ use the editor.
 - PDF books upload directly to private storage in resumable chunks; browser-only PDF.js extracts bounded page ranges, rendering scanned pages for the existing authenticated material AI call, so entire books never enter server requests.
 - Books and their pending page ranges persist separately from generated materials; generation claims one part atomically and links a normal lesson only after saving vocabulary and grammar, preserving all review methods and avoiding duplicate concurrent AI work.
 - TUS sets the current bearer only in onBeforeRequest, not initial headers, because preview mediation must not rewrite the storage session; resumable fingerprints are scoped to the signed-in owner.
+
+- All optional AI calls use the server-only personal provider helper with no platform-gateway fallback, so workspace credits never gate app study.
+- Grammar uses pure local grading; unmatched open answers require explicit self-assessment before persistence, because reference mismatch cannot prove a grammar error.
+- Open vocabulary production uses explicit self-assessment; translation drills use saved term/meaning pairs to avoid metered automatic preparation.
+- Manual content must include learner-provided solutions and examples, never generated placeholder lessons, so it works without an AI service.

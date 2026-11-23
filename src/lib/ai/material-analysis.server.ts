@@ -2,7 +2,7 @@
 import { APICallError, NoObjectGeneratedError, Output, jsonSchema, streamText, type ModelMessage } from "ai";
 import { z } from "zod";
 
-import { ANALYSIS_MODEL, createResponsesProvider, friendlyAiError, getLovableApiKey } from "./gateway.server";
+import { ANALYSIS_MODEL, createResponsesProvider, friendlyAiError, getPersonalApiKey } from "./provider.server";
 import { goalName, languageName } from "../study-config";
 import { grammarContentSchema, supportedGrammarRules } from "../grammar";
 import { GRAMMAR_INSTRUCTIONS, grammarWireShape } from "./grammar.server";
@@ -157,25 +157,15 @@ export type AnalysisResult =
   | { ok: false; message: string };
 
 export async function analyzeMaterialWithAI(input: AnalysisInput, profile: LearnerProfile): Promise<AnalysisResult> {
-  const apiKey = getLovableApiKey();
-  const provider = createResponsesProvider(apiKey);
-
   try {
+    const provider = createResponsesProvider(getPersonalApiKey());
     const result = streamText({
       model: provider.responses(ANALYSIS_MODEL),
       instructions: buildInstructions(profile),
       messages: buildMessages(input),
       output: Output.object({ schema: wireSchema }),
       maxRetries: 0,
-      providerOptions: {
-        openai: {
-          forceReasoning: true,
-          reasoningEffort: "low",
-          reasoningSummary: "auto",
-          store: false,
-          include: ["reasoning.encrypted_content"],
-        },
-      },
+
     });
 
     const raw = await result.output;
@@ -210,6 +200,6 @@ export async function analyzeMaterialWithAI(input: AnalysisInput, profile: Learn
       return { ok: false, message: friendlyAiError(cause.statusCode) };
     }
     console.error("analysis failed", error);
-    return { ok: false, message: friendlyAiError(undefined) };
+    return { ok: false, message: error instanceof Error ? error.message : friendlyAiError(undefined) };
   }
 }

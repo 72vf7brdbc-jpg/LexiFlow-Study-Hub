@@ -1,8 +1,9 @@
+import { gradeGrammarAnswer } from "./grading";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { grammarContentSchema, grammarQuestionSchema, withGrammarTeaching, type GrammarRule } from "./grammar";
-import { clarifyGrammar, evaluateGrammar, explainGrammar, generateGrammar } from "./ai/grammar.server";
+import { clarifyGrammar, explainGrammar, generateGrammar } from "./ai/grammar.server";
 
 export const getGrammar = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const [rules, attempts, lessons, notes] = await Promise.all([
@@ -20,8 +21,15 @@ export const getGrammar = createServerFn({ method: "POST" }).middleware([require
   return { rules: parsed, attempts: attempts.data ?? [], lessons: lessons.data ?? [], notes: notes.data ?? [] };
 });
 export const addGrammar = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ source: z.enum(["lesson", "request", "manual"]), text: z.string().trim().max(12000).optional(), materialId: z.string().uuid().optional() }).parse(data))
+  .inputValidator((data: unknown) => z.object({ source: z.enum(["lesson", "request", "manual"]), text: z.string().trim().max(12000).optional(), materialId: z.string().uuid().optional(), content: grammarContentSchema.optional() }).parse(data))
   .handler(async ({ data, context }) => {
+    if (data.source === "manual") {
+      if (!data.content) return { ok: false as const, message: "Completa la regola e i quattro esercizi con le soluzioni." };
+      const content = { ...data.content, source_quote: null };
+      const { data: profile } = await context.supabase.from("profiles").select("cefr_level").eq("id", context.userId).maybeSingle();
+      const { error } = await context.supabase.from("grammar_rules").insert({ user_id: context.userId, title: content.title, content, source: "manual", level: profile?.cefr_level ?? "B1" });
+      return error ? { ok: false as const, message: "Non è stato possibile salvare la regola." } : { ok: true as const, count: 1 };
+    }
     let text = data.text ?? "";
     if (data.source === "lesson") {
       if (!data.materialId) return { ok: false as const, message: "Scegli una lezione." };
@@ -47,20 +55,19 @@ export const addGrammar = createServerFn({ method: "POST" }).middleware([require
     return { ok: true as const, count: generated.rules.length };
   });
 export const checkGrammar = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ ruleId: z.string().uuid(), index: z.number().int().min(0).max(7), answer: z.string().trim().min(1).max(600) }).parse(data))
+  .inputValidator((data: unknown) => z.object({ ruleId: z.string().uuid(), index: z.number().int().min(0).max(7), answer: z.string().trim().min(1).max(600), selfAssessment: z.boolean().optional() }).parse(data))
   .handler(async ({ data, context }) => {
     const { data: row } = await context.supabase.from("grammar_rules").select("content").eq("id", data.ruleId).maybeSingle();
     const content = grammarContentSchema.safeParse(row?.content);
     if (!content.success) return { ok: false as const, message: "Regola non trovata." };
     const exercise = content.data.exercises[data.index];
     if (!exercise) return { ok: false as const, message: "Esercizio non trovato." };
-    const evaluated = exercise.kind === "choice"
-      ? { ok: true as const, result: { correct: data.answer === exercise.answer, feedback: exercise.explanation, natural_answer: exercise.answer } }
-      : await evaluateGrammar(content.data, exercise, data.answer);
-    if (!evaluated.ok) return evaluated;
+    const local = gradeGrammarAnswer(exercise, data.answer);
+    if (local.needsAssessment && data.selfAssessment === undefined) return { ok: true as const, result: local, saved: false };
+    const evaluated = { ok: true as const, result: { ...local, needsAssessment: false, correct: local.correct || (local.needsAssessment && data.selfAssessment === true), feedback: local.needsAssessment ? `Autovalutazione. ${local.feedback}` : local.feedback } };
     const { error } = await context.supabase.from("grammar_attempts").insert({ user_id: context.userId, rule_id: data.ruleId, exercise_index: data.index, answer: data.answer, correct: evaluated.result.correct, feedback: evaluated.result.feedback });
     if (error) return { ok: false as const, message: "La correzione è pronta, ma il risultato non è stato salvato. Riprova." };
-    return evaluated;
+    return { ...evaluated, saved: true };
   });
 export const deleteGrammar = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ ruleId: z.string().uuid() }).parse(data))
