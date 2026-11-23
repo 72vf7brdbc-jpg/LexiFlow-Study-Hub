@@ -1,3 +1,5 @@
+import { SelfAssessment } from "./self-assessment";
+import { ManualGrammarForm } from "./manual-grammar-form";
 import { useState } from "react";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -21,7 +23,7 @@ export function GrammarBanner({ onOpen }: { onOpen: () => void }) {
   </section>;
 }
 const exerciseNames = { gap: "Completa la frase", choice: "Scegli la forma corretta", correction: "Trova e correggi l’errore", transformation: "Trasforma la frase" };
-type Feedback = { correct: boolean; feedback: string; natural_answer: string };
+type Feedback = { correct: boolean; feedback: string; natural_answer: string; needsAssessment: boolean };
 export function GrammarWorkspace({ onClose, material }: { onClose: () => void; material?: string | undefined }) {
   const { data } = useSuspenseQuery(grammarQuery);
   const queryClient = useQueryClient();
@@ -56,13 +58,13 @@ export function GrammarWorkspace({ onClose, material }: { onClose: () => void; m
     } catch { setError("La richiesta non è stata completata. Il testo è rimasto qui."); }
     finally { setBusy(false); }
   }
-  async function submit() {
-    if (!rule || busy || feedback || !answer.trim()) return;
+  async function submit(selfAssessment?: boolean) {
+    if (!rule || busy || (feedback && !feedback.needsAssessment) || !answer.trim()) return;
     setBusy(true); setError(null);
     try {
-      const result = await check({ data: { ruleId: rule.id, index, answer } });
+      const result = await check({ data: { ruleId: rule.id, index, answer, ...(selfAssessment === undefined ? {} : { selfAssessment }) } });
       if (!result.ok) { setError(result.message); return; }
-      setFeedback(result.result); setResults((prev) => [...prev, result.result]); await refresh(); await queryClient.invalidateQueries({ queryKey: ["review-progress"] });
+      setFeedback(result.result); if (result.saved) setResults((prev) => [...prev, result.result]); await refresh(); await queryClient.invalidateQueries({ queryKey: ["review-progress"] });
     } catch { setError("Non è stato possibile correggere e salvare la risposta. Riprova."); }
     finally { setBusy(false); }
   }
@@ -84,8 +86,10 @@ export function GrammarWorkspace({ onClose, material }: { onClose: () => void; m
     </>}
     {view === "new" && <div className="mt-7 space-y-6">
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Origine della regola">{(["request", "manual", "lesson"] as const).map((s) => <Button key={s} role="tab" aria-selected={source === s} variant={source === s ? "grammar" : "outline"} onClick={() => { setSource(s); setError(null); }} disabled={busy}>{s === "request" ? <Sparkles /> : s === "manual" ? <PenLine /> : <BookOpen />}{s === "request" ? "Chiedi all’AI" : s === "manual" ? "Scrivi una regola" : "Da una lezione passata"}</Button>)}</div>
+      {source === "manual" ? <ManualGrammarForm onSaved={async () => { await refresh(); setView("list"); setNotice("Regola ed esercizi salvati."); }} /> : <>
       {source === "lesson" ? <div className="space-y-2"><label htmlFor="grammar-lesson" className="text-sm font-semibold">Lezione</label><select id="grammar-lesson" value={lessonId} onChange={(e) => setLessonId(e.target.value)} disabled={busy} className="h-12 w-full min-w-0 rounded-lg border border-input bg-paper px-3 text-sm"><option value="">Scegli una lezione</option>{data.lessons.filter((l) => !l.grammar_extracted_at).map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}</select>{data.lessons.every((l) => l.grammar_extracted_at) && <p className="text-sm text-muted-foreground">Non ci sono lezioni ancora da analizzare.</p>}</div> : <div className="space-y-5"><div className="space-y-2"><label htmlFor="grammar-topic" className="text-sm font-semibold">Argomento o dubbio</label><Input id="grammar-topic" value={topic} maxLength={500} onChange={(e) => setTopic(e.target.value)} placeholder="Es. Present perfect e past simple: quando usarli?" disabled={busy} /></div>{source === "manual" && <div className="space-y-2"><label htmlFor="grammar-notes" className="text-sm font-semibold">La tua regola o gli appunti della slide</label><Textarea id="grammar-notes" value={notes} maxLength={10000} onChange={(e) => setNotes(e.target.value)} placeholder="Scrivi la spiegazione che vuoi approfondire…" className="min-h-40" disabled={busy} /></div>}</div>}
       <Button variant="grammar" onClick={create} disabled={busy || (source === "lesson" ? !lessonId : topic.trim().length < 3 || (source === "manual" && notes.trim().length < 3))}>{busy ? <Loader2 className="animate-spin" /> : <Sparkles />}{busy ? "Preparo teoria ed esercizi…" : source === "lesson" ? "Estrai la grammatica" : "Aggiungi al quaderno"}</Button>
+    </>}
     </div>}
     {view === "theory" && currentRule && <GrammarTheory key={currentRule.id} rule={currentRule} notes={data.notes} onPractice={resetPractice} refresh={refresh} />}
     {view === "practice" && rule && exercise && <div className="mt-7 space-y-6">
@@ -95,7 +99,7 @@ export function GrammarWorkspace({ onClose, material }: { onClose: () => void; m
         {exercise.kind === "choice" ? <div className="grid gap-3 sm:grid-cols-2">{exercise.options.map((option) => <Button key={option} type="button" variant={answer === option ? "grammar" : "outline"} aria-pressed={answer === option} onClick={() => setAnswer(option)} disabled={busy || !!feedback} className="h-auto min-h-12 whitespace-normal rounded-lg p-4 text-left">{option}</Button>)}</div> : <div className="space-y-2"><label htmlFor="grammar-answer" className="text-sm font-semibold">La tua risposta</label><Textarea id="grammar-answer" value={answer} maxLength={600} onChange={(e) => setAnswer(e.target.value)} disabled={busy || !!feedback} className="min-h-28" /></div>}
         {!feedback && <Button type="submit" variant="grammar" disabled={busy || !answer.trim()}>{busy ? <Loader2 className="animate-spin" /> : <Check />}{busy ? "Correggo e salvo…" : "Controlla risposta"}</Button>}
       </form>
-      {feedback && <div className={cn("space-y-4 border-y py-6", feedback.correct ? "border-success" : "border-grammar")}><h3 className={cn("font-display text-xl", feedback.correct ? "text-success" : "text-grammar")}>{feedback.correct ? "Corretto!" : "Rivediamo la regola"}</h3><p className="leading-relaxed">{feedback.feedback}</p><div><p className="text-xs font-semibold text-muted-foreground">Una soluzione corretta</p><p className="mt-2 font-semibold">{feedback.natural_answer}</p></div><p className="text-xs text-muted-foreground">Risultato salvato nel quaderno.</p><Button variant="grammar" onClick={() => { if (index + 1 >= rule.content.exercises.length) setView("summary"); else { setIndex((i) => i + 1); setAnswer(""); setFeedback(null); setError(null); } }}>{index + 1 >= rule.content.exercises.length ? "Vedi il risultato" : "Prossimo esercizio"}<ArrowRight /></Button></div>}
+      {feedback?.needsAssessment ? <SelfAssessment reference={`Una soluzione corretta: ${feedback.natural_answer}\n${feedback.feedback}`} onAssess={(correct) => { void submit(correct); }} /> : feedback && <div className={cn("space-y-4 border-y py-6", feedback.correct ? "border-success" : "border-grammar")}><h3 className={cn("font-display text-xl", feedback.correct ? "text-success" : "text-grammar")}>{feedback.correct ? "Corretto!" : "Rivediamo la regola"}</h3><p className="leading-relaxed">{feedback.feedback}</p><div><p className="text-xs font-semibold text-muted-foreground">Una soluzione corretta</p><p className="mt-2 font-semibold">{feedback.natural_answer}</p></div><p className="text-xs text-muted-foreground">Risultato salvato nel quaderno.</p><Button variant="grammar" onClick={() => { if (index + 1 >= rule.content.exercises.length) setView("summary"); else { setIndex((i) => i + 1); setAnswer(""); setFeedback(null); setError(null); } }}>{index + 1 >= rule.content.exercises.length ? "Vedi il risultato" : "Prossimo esercizio"}<ArrowRight /></Button></div>}
     </div>}
     {view === "summary" && rule && <div className="mt-10 space-y-6 text-center"><GraduationCap className="mx-auto size-12 text-grammar" /><h2 className="font-display text-2xl">Un passo avanti nella grammatica</h2><p className="text-lg">{results.filter((r) => r.correct).length} / {results.length} risposte corrette</p><div className="flex flex-wrap justify-center gap-3"><Button variant="outline" onClick={() => setView("theory")}><BookOpen /> Rivedi la teoria</Button><Button variant="grammar" onClick={resetPractice}>Ripeti gli esercizi <ArrowRight /></Button></div><Button variant="ghost" onClick={() => setView("list")}>Torna al quaderno</Button></div>}
   </div>;

@@ -1,3 +1,4 @@
+import { SelfAssessment } from "./self-assessment";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Pause, Play, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,11 +42,11 @@ function WritingSession({ cards, onExit, onRestart, method }: SessionProps & { m
   };
   return <div className="mx-auto max-w-2xl pb-16">
     <SessionHeader method={method} done={index} total={cards.length} xp={rec.xp} onExit={onExit} />
-    <PromptCard eyebrow={sentence ? "Crea una frase originale" : task === "synonym" ? "Trova un sinonimo" : "Riscrivi con parole diverse"} aside={<Stamp tone="green">Correzione AI</Stamp>}>
+    <PromptCard eyebrow={sentence ? "Crea una frase originale" : task === "synonym" ? "Trova un sinonimo" : "Riscrivi con parole diverse"} aside={<Stamp tone="green">Autovalutazione</Stamp>}>
       <div className="flex items-center gap-2"><p className="font-display text-3xl italic break-words">{card.term}</p><SpeakButton text={card.term} /></div>
       {sentence ? <p className="mt-3 text-sm text-muted-foreground">{card.meaning}</p> : task === "paraphrase" ? <p className="mt-4 font-display text-xl">{card.example}</p> : <p className="mt-3 text-sm text-muted-foreground">{card.definition || card.meaning}</p>}
     </PromptCard>
-    {!coach.result ? <div className="mt-5 space-y-3" key={card.id}>
+    {coach.assessing ? <SelfAssessment reference={`${card.term} — ${card.meaning}\n${card.example ?? card.definition ?? ""}`} onAssess={coach.assess} /> : !coach.result ? <div className="mt-5 space-y-3" key={card.id}>
       <AnswerArea value={answer} onChange={setAnswer} label={sentence ? "La tua frase" : "Sinonimo o parafrasi"} placeholder={sentence ? "Scrivi una frase in inglese con questa parola…" : task === "synonym" ? "Scrivi un sinonimo in inglese…" : "Riscrivi la frase mantenendo il significato…"} autoFocus />
       {coach.error && <InlineError title="Correzione non riuscita" message={coach.error} onRetry={check} />}
       <div className="flex justify-between"><Button variant="ghost" disabled={coach.loading} onClick={next}>Salta</Button><Button onClick={check} disabled={!answer.trim() || coach.loading}>{coach.loading && <Loader2 className="animate-spin" />} Verifica</Button></div>

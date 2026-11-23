@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatBytes, prepareUpload, type PreparedUpload } from "@/lib/file-prep";
-import { analyzeMaterial } from "@/lib/materials.functions";
+import { analyzeMaterial, saveManualLesson } from "@/lib/materials.functions";
 import { profileQuery } from "@/lib/queries";
 import { goalName } from "@/lib/study-config";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,8 @@ function UploadPage() {
   const queryClient = useQueryClient();
   const { data: profile } = useSuspenseQuery(profileQuery);
   const analyze = useServerFn(analyzeMaterial);
+  const manualSave = useServerFn(saveManualLesson);
+  const [manual, setManual] = useState(true);
 
   const mode: Mode = search.mode ?? "photo";
   const [title, setTitle] = useState("");
@@ -138,7 +140,7 @@ function UploadPage() {
     handleFiles(e.dataTransfer.files);
   }
 
-  const canSubmit = mode === "text" ? text.trim().length >= 20 : preparedList.length > 0;
+  const canSubmit = mode === "text" ? (manual ? !!title.trim() && text.trim().length > 0 : text.trim().length >= 20) : preparedList.length > 0;
 
   async function submit() {
     if (!canSubmit || busy) return;
@@ -163,12 +165,12 @@ function UploadPage() {
         additionalFiles: preparedList.slice(1),
       };
 
-      const res = await analyze({ data: payload });
+      const res = mode === "text" && manual ? await manualSave({ data: { title, text } }) : await analyze({ data: payload });
       if (!res.ok) {
         setError(res.message);
         return;
       }
-      setDone({ materialId: res.materialId, title: res.title, cardCount: res.cardCount, grammarCount: res.grammarCount, saveOnly });
+      setDone({ materialId: res.materialId, title: res.title, cardCount: res.cardCount, grammarCount: res.grammarCount, saveOnly: mode === "text" && manual ? false : saveOnly });
       queryClient.invalidateQueries({ queryKey: ["grammar"] });
       queryClient.invalidateQueries({ queryKey: ["review-data"] });
       queryClient.invalidateQueries({ queryKey: ["materials"] });
@@ -383,6 +385,7 @@ function UploadPage() {
           </div>
         )}
 
+        {mode === "text" && <div className="flex flex-wrap gap-2" role="tablist" aria-label="Inserimento testo"><Button role="tab" aria-selected={manual} variant={manual ? "default" : "outline"} onClick={() => { setManual(true); setError(null); }}><PenLine /> Vocaboli manuali</Button><Button role="tab" aria-selected={!manual} variant={!manual ? "default" : "outline"} onClick={() => { setManual(false); setError(null); }}><Sparkles /> Analizza con Gemini</Button></div>}
         {mode === "text" && (
           <div className="paper overflow-hidden">
             <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -392,7 +395,8 @@ function UploadPage() {
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 60000))}
-              placeholder={"Incolla o scrivi qui il testo della lezione, le parole viste in classe o i tuoi appunti…\n\nEs. Phrasal verbs: give up, look forward to, put off…"}
+              aria-label={manual ? "Vocaboli della lezione" : "Testo della lezione"}
+              placeholder={manual ? "Parola | significato | frase in inglese (facoltativa)\n\nUna parola per riga" : "Incolla o scrivi qui il testo della lezione, le parole viste in classe o i tuoi appunti…\n\nEs. Phrasal verbs: give up, look forward to, put off…"}
               className="lined min-h-[280px] resize-y rounded-none border-0 bg-transparent px-5 py-2 text-[15px] leading-8 shadow-none focus-visible:ring-0"
               disabled={busy}
             />
@@ -401,7 +405,7 @@ function UploadPage() {
 
         {!pdfFile && <>
         <div className="grid gap-1.5">
-          <label htmlFor="title" className="eyebrow">Titolo (facoltativo)</label>
+          <label htmlFor="title" className="eyebrow">{mode === "text" && manual ? "Titolo della lezione" : "Titolo (facoltativo)"}</label>
           <Input
             id="title"
             value={title}
@@ -412,6 +416,7 @@ function UploadPage() {
           />
         </div>
 
+        {!(mode === "text" && manual) && <>
         {/* Sezione per i Compiti Assegnati Manuali */}
         <div className="paper space-y-3 p-5 sm:p-6">
           <div className="flex items-center gap-2">
@@ -460,6 +465,7 @@ function UploadPage() {
           </button>
         </div>
 
+        </>}
         {error && (
           <div role="alert" className="flex items-start gap-3 rounded-xl border border-burgundy/25 bg-danger-soft px-4 py-3 text-sm text-burgundy">
             <X className="mt-0.5 size-4 shrink-0" />
@@ -486,10 +492,10 @@ function UploadPage() {
             </div>
           )}
           <Button size="lg" onClick={submit} disabled={!canSubmit || busy || preparing} className="sm:min-w-[210px]">
-            {busy ? <Loader2 className="animate-spin" /> : <Sparkles />} {busy ? "Analisi in corso" : saveOnly ? "Salva nel registro" : "Crea le schede"}
+            {busy ? <Loader2 className="animate-spin" /> : <Sparkles />} {busy ? "Analisi in corso" : mode === "text" && manual ? "Salva lezione e vocaboli" : saveOnly ? "Salva nel registro" : "Crea le schede"}
           </Button>
         </div>
-        {mode === "text" && !canSubmit && text.length > 0 && (
+        {mode === "text" && !manual && !canSubmit && text.length > 0 && (
           <p className="-mt-2 text-xs text-muted-foreground">Scrivi almeno qualche frase (20 caratteri) per un'analisi utile.</p>
         )}
         </>}

@@ -3,7 +3,7 @@
 import { APICallError, NoObjectGeneratedError, Output, jsonSchema, streamText } from "ai";
 import { z } from "zod";
 
-import { COACH_MODEL, createResponsesProvider, friendlyAiError, getPersonalApiKey } from "./provider.server";
+import { COACH_MODEL, createPersonalProvider, friendlyAiError, getPersonalApiKey } from "./provider.server";
 
 export type CoachCard = { term: string; meaning: string; definition: string | null; example: string | null };
 
@@ -137,7 +137,7 @@ function failure(error: unknown, fallback: string): { ok: false; message: string
   const api = APICallError.isInstance(error) ? error : APICallError.isInstance((error as { cause?: unknown })?.cause) ? ((error as { cause: APICallError }).cause) : null;
   if (api) {
     console.error("coach: gateway error", api.statusCode, api.responseBody?.slice(0, 300));
-    if (api.statusCode === 402) return { ok: false, message: "Il servizio AI personale richiede credito sul tuo account OpenAI, non crediti Lovable." };
+    if (api.statusCode === 402) return { ok: false, message: "Il servizio AI personale richiede credito sul tuo account Google, non crediti Lovable." };
     return { ok: false, message: friendlyAiError(api.statusCode, fallback) };
   }
   console.error("coach failed", error);
@@ -146,10 +146,10 @@ function failure(error: unknown, fallback: string): { ok: false; message: string
 
 export async function evaluateWithCoach(task: CoachTask, card: CoachCard, level: string | null): Promise<CoachResult> {
   try {
-    const provider = createResponsesProvider(getPersonalApiKey());
+    const provider = createPersonalProvider(getPersonalApiKey());
     const result = streamText({
-      model: provider.responses(COACH_MODEL),
-      instructions: `${BASE}\nLearner CEFR level: ${level ?? "B1"}.\n${taskInstructions(task)}`,
+      model: provider(COACH_MODEL),
+      system: `${BASE}\nLearner CEFR level: ${level ?? "B1"}.\n${taskInstructions(task)}`,
       prompt: taskPrompt(task, card),
       output: Output.object({ schema: coachWire }),
       maxRetries: 0,
@@ -190,10 +190,10 @@ export type TranslateResult = { ok: true; items: { id: string; it: string }[] } 
 /** Natural Italian versions of the learner's lesson sentences, for Italian → English practice. */
 export async function italianVersions(sentences: { id: string; en: string }[]): Promise<TranslateResult> {
   try {
-    const provider = createResponsesProvider(getPersonalApiKey());
+    const provider = createPersonalProvider(getPersonalApiKey());
     const result = streamText({
-      model: provider.responses(COACH_MODEL),
-      instructions:
+      model: provider(COACH_MODEL),
+      system:
         "Translate each English sentence into natural, idiomatic Italian, as a native speaker would say it (not word for word). Return one item per input id, keeping the same id.",
       prompt: JSON.stringify(sentences),
       output: Output.object({ schema: translationWire }),

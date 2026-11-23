@@ -1,3 +1,4 @@
+import { parseManualCards } from "./manual-content";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -145,4 +146,17 @@ export const analyzeMaterial = createServerFn({ method: "POST" })
     } finally {
       if (bookPart && !completed) await supabase.from("book_lessons").update({ status: "pending", started_at: null }).eq("id", bookPart.id).is("material_id", null);
     }
+  });
+
+/** A lesson with explicit learner-provided word/meaning pairs, with no AI calls. */
+export const saveManualLesson = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ title: z.string().trim().min(1).max(140), text: z.string().min(1).max(60000) }).parse(input))
+  .handler(async ({ data, context }) => {
+    let cards;
+    try { cards = parseManualCards(data.text); } catch (error) { return { ok: false as const, message: error instanceof Error ? error.message : "Vocaboli non validi." }; }
+    const { data: lesson, error } = await context.supabase.from("materials").insert({ user_id: context.userId, title: data.title, source_type: "text", extracted_text: data.text, card_count: cards.length }).select("id").single();
+    if (error || !lesson) return { ok: false as const, message: "Non è stato possibile salvare la lezione." };
+    const inserted = await context.supabase.from("cards").insert(cards.map((card) => ({ user_id: context.userId, material_id: lesson.id, kind: "vocabulary", term: card.term, meaning: card.meaning, example: card.example || null })));
+    if (inserted.error) { await context.supabase.from("materials").delete().eq("id", lesson.id); return { ok: false as const, message: "Non è stato possibile salvare i vocaboli." }; }
+    return { ok: true as const, materialId: lesson.id, title: data.title, cardCount: cards.length, grammarCount: 0 };
   });

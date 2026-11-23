@@ -2,7 +2,7 @@
 import { APICallError, NoObjectGeneratedError, Output, jsonSchema, streamText, type ModelMessage } from "ai";
 import { z } from "zod";
 
-import { ANALYSIS_MODEL, createResponsesProvider, friendlyAiError, getPersonalApiKey } from "./provider.server";
+import { ANALYSIS_MODEL, createPersonalProvider, friendlyAiError, getPersonalApiKey } from "./provider.server";
 import { goalName, languageName } from "../study-config";
 import { grammarContentSchema, supportedGrammarRules } from "../grammar";
 import { GRAMMAR_INSTRUCTIONS, grammarWireShape } from "./grammar.server";
@@ -158,10 +158,10 @@ export type AnalysisResult =
 
 export async function analyzeMaterialWithAI(input: AnalysisInput, profile: LearnerProfile): Promise<AnalysisResult> {
   try {
-    const provider = createResponsesProvider(getPersonalApiKey());
+    const provider = createPersonalProvider(getPersonalApiKey());
     const result = streamText({
-      model: provider.responses(ANALYSIS_MODEL),
-      instructions: buildInstructions(profile),
+      model: provider(ANALYSIS_MODEL),
+      system: buildInstructions(profile),
       messages: buildMessages(input),
       output: Output.object({ schema: wireSchema }),
       maxRetries: 0,

@@ -1,13 +1,12 @@
 // Vocabolario: Collocations, Contextual Learning, Translation Practice.
-import { useServerFn } from "@tanstack/react-start";
+import { SelfAssessment } from "./self-assessment";
 import { Loader2, RotateCcw } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 
 import { EmptyState, InlineError, Stamp } from "@/components/lexi/ui-bits";
 import { Button } from "@/components/ui/button";
-import { prepareItalianSentences } from "@/lib/coach.functions";
 import { gradeAnswer } from "@/lib/grading";
-import { buildCollocationRounds, buildTranslationItems, isOrderCorrect, type CollocationRound, type MatchPair, type TranslationItem } from "@/lib/method-exercises";
+import { buildCollocationRounds, isOrderCorrect, type CollocationRound, type MatchPair, type TranslationItem } from "@/lib/method-exercises";
 import { coachCountsAsCorrect } from "@/lib/methods";
 import { shuffle } from "@/lib/practice";
 import { cn } from "@/lib/utils";
@@ -323,7 +322,7 @@ export function ContextualSession({ cards, onExit, onRestart }: SessionProps) {
         </p>
       </PromptCard>
 
-      {!coach.result ? (
+      {coach.assessing ? <SelfAssessment reference={`${card.term} — ${card.meaning}\n${card.definition ?? ""}\n${card.example ?? ""}`} onAssess={coach.assess} /> : !coach.result ? (
         <div key={card.id} className="mt-5 space-y-5">
           <Step n={1} label={`Che cosa significa «${card.term}» in questa frase?`}>
             <AnswerArea value={meaning} onChange={setMeaning} placeholder="Scrivi il significato in italiano…" label="Significato" rows={2} autoFocus />
@@ -398,52 +397,8 @@ function Step({ n, label, children }: { n: number; label: string; children: Reac
 
 export function TranslationSession({ cards, onExit, onRestart }: SessionProps) {
   const rec = useReviewRecorder("translation_practice");
-  const prepare = useServerFn(prepareItalianSentences);
-  const baseItems = useMemo(() => buildTranslationItems(cards), [cards]);
-  const [italian, setItalian] = useState<Map<string, string> | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const started = useRef(false);
-
-  useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    const ids = baseItems.filter((i) => i.direction === "it_en").map((i) => i.cardId);
-    if (ids.length === 0) {
-      setItalian(new Map());
-      return;
-    }
-    prepare({ data: { cardIds: ids.slice(0, 12) } })
-      .then((res) => {
-        if (res.ok) setItalian(new Map(res.items.map((x) => [x.id, x.it])));
-        else {
-          setNotice(res.message);
-          setItalian(new Map());
-        }
-      })
-      .catch(() => {
-        setNotice("Non sono riuscita a preparare le frasi in italiano: oggi traduci solo dall'inglese.");
-        setItalian(new Map());
-      });
-  }, [baseItems, prepare]);
-
-  if (!italian) {
-    return (
-      <div className="mx-auto max-w-2xl pb-16">
-        <SessionHeader method="translation_practice" done={0} total={baseItems.length} xp={0} onExit={onExit} />
-        <div className="mt-16 flex flex-col items-center gap-3 text-muted-foreground">
-          <Loader2 className="size-6 animate-spin text-primary" />
-          <p className="text-sm">Preparo le frasi delle tue lezioni…</p>
-        </div>
-      </div>
-    );
-  }
-
-  const items: (TranslationItem & { source: string })[] = baseItems.map((i) => {
-    const it = italian.get(i.cardId);
-    return i.direction === "it_en" && it ? { ...i, source: it } : { ...i, direction: "en_it", source: i.english };
-  });
-
-  return <TranslationRun items={items} cards={cards} notice={notice} rec={rec} onExit={onExit} onRestart={onRestart} />;
+  const items = cards.map((card, index) => ({ cardId: card.id, direction: index % 2 === 0 ? "it_en" as const : "en_it" as const, english: card.term, source: index % 2 === 0 ? card.meaning : card.term, reference: index % 2 === 0 ? card.term : card.meaning }));
+  return <TranslationRun items={items} cards={cards} notice={null} rec={rec} onExit={onExit} onRestart={onRestart} />;
 }
 
 function TranslationRun({
@@ -454,7 +409,7 @@ function TranslationRun({
   onExit,
   onRestart,
 }: {
-  items: (TranslationItem & { source: string })[];
+  items: (TranslationItem & { source: string; reference: string })[];
   cards: SessionProps["cards"];
   notice: string | null;
   rec: ReturnType<typeof useReviewRecorder>;
@@ -494,7 +449,7 @@ function TranslationRun({
           {!toEnglish && <SpeakButton text={item.source} />}
         </div>
       </PromptCard>
-      {!coach.result ? (
+      {coach.assessing ? <SelfAssessment reference={item.reference} onAssess={coach.assess} /> : !coach.result ? (
         <div key={item.cardId} className="mt-5 space-y-3">
           <AnswerArea value={answer} onChange={setAnswer} placeholder={toEnglish ? "Scrivi la frase in inglese…" : "Scrivi la frase in italiano…"} label="Traduzione" autoFocus />
           {coach.error && <InlineError title="Correzione non riuscita" message={coach.error} onRetry={check} />}
