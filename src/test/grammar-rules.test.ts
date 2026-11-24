@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GRAMMAR_KINDS, grammarContentSchema, grammarProgress, grammarQuestionSchema, notesForGrammarRule, supportedGrammarRules, withGrammarTeaching, type GrammarContent } from "@/lib/grammar";
+import { gradeGrammarAnswer } from "@/lib/grading";
+import { parseManualCards } from "@/lib/manual-content";
 
 const rule: GrammarContent = {
   title: "Present perfect", overview: "Un evento passato con un legame con il presente.", formation: "have/has + past participle", uses: ["Esperienze"],
@@ -51,5 +53,24 @@ describe("grammar learning rules", () => {
     expect(grammarQuestionSchema.safeParse({ ruleId, question: "Perché si usa has?" }).success).toBe(true);
     expect(grammarQuestionSchema.safeParse({ ruleId, question: "  " }).success).toBe(false);
     expect(grammarQuestionSchema.safeParse({ ruleId: "missing", question: "Perché has?" }).success).toBe(false);
+  });
+  it("grades grammar locally for gap part, full sentence, contractions and flags open mismatches for self-assessment", () => {
+    const gap = { kind: "gap", prompt: "Completa la frase:\nI _____ (visit) Rome.", answer: "have visited", explanation: "Esperienza." };
+    expect(gradeGrammarAnswer(gap, "have visited")).toMatchObject({ correct: true, needsAssessment: false });
+    expect(gradeGrammarAnswer(gap, "I have visited Rome.")).toMatchObject({ correct: true, needsAssessment: false });
+    expect(gradeGrammarAnswer(gap, "visited")).toMatchObject({ correct: false, needsAssessment: true });
+    const choice = { kind: "choice", prompt: "She ___ arrived.", answer: "has", explanation: "Terza persona." };
+    expect(gradeGrammarAnswer(choice, "has")).toMatchObject({ correct: true, needsAssessment: false });
+    expect(gradeGrammarAnswer(choice, "have")).toMatchObject({ correct: false, needsAssessment: false });
+    const neg = { kind: "transformation", prompt: "Riscrivi al negativo", answer: "She does not like coffee.", explanation: "Negativa." };
+    expect(gradeGrammarAnswer(neg, "She doesn't like coffee")).toMatchObject({ correct: true, needsAssessment: false });
+  });
+  it("parses manual vocabulary lines and rejects incomplete rows", () => {
+    expect(parseManualCards("give up | arrendersi | Never give up.\nreliable | affidabile")).toEqual([
+      { term: "give up", meaning: "arrendersi", example: "Never give up." },
+      { term: "reliable", meaning: "affidabile", example: "" },
+    ]);
+    expect(() => parseManualCards("onlyterm")).toThrow();
+    expect(() => parseManualCards("   ")).toThrow();
   });
 });

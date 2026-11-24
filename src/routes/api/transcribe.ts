@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import { APICallError, streamText } from "ai";
 
-import { PROVIDER_URL, TRANSCRIBE_MODEL, friendlyAiError } from "@/lib/ai/provider.server";
+import { ANALYSIS_MODEL, createPersonalProvider, friendlyAiError } from "@/lib/ai/provider.server";
 
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
 
@@ -52,36 +53,34 @@ export const Route = createFileRoute("/api/transcribe")({
         if (file.size > MAX_AUDIO_BYTES) return json(413, { error: "Registrazione troppo lunga." });
         if (!file.type.startsWith("audio/")) return json(400, { error: "Formato audio non supportato." });
 
-        const apiKey = process.env["OPENAI_API_KEY"];
-        if (!apiKey) return json(503, { error: "Trascrizione personale non configurata. Usa la tastiera o la dettatura del telefono." });
+        const apiKey = process.env["GOOGLE_API_KEY"];
+        if (!apiKey) return json(503, { error: "Trascrizione Gemini personale non configurata. Usa la tastiera o la dettatura del telefono." });
 
-        const upstream = new FormData();
-        upstream.append("model", TRANSCRIBE_MODEL);
-        upstream.append("file", file, file.name || "recording.wav");
-        upstream.append("response_format", "json");
-        upstream.append("stream", "true");
-        upstream.append("prompt", "A language learner says an English word, phrase or short sentence for a vocabulary exercise.");
-
-        const res = await fetch(`${PROVIDER_URL}/v1/audio/transcriptions`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}` },
-          body: upstream,
-          signal: request.signal,
-        });
-
-        if (!res.ok) {
-          const detail = await res.text().catch(() => "");
-          console.error("transcription failed", res.status, detail.slice(0, 300));
-          return json(res.status, { error: friendlyAiError(res.status, "Non è stato possibile trascrivere l'audio.") });
+        try {
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const provider = createPersonalProvider(apiKey);
+          const result = streamText({
+            model: provider(ANALYSIS_MODEL),
+            system: "Transcribe the spoken English word, phrase, or short sentence accurately. Return only the spoken text, with no commentary or quotes.",
+            messages: [{ role: "user", content: [{ type: "file", data: bytes, mediaType: file.type || "audio/wav" }] }],
+            maxRetries: 0,
+            abortSignal: request.signal,
+          });
+          const text = (await result.text).trim();
+          const payload = `data: ${JSON.stringify({ type: "transcript.text.done", text })}\n\ndata: [DONE]\n\n`;
+          return new Response(payload, {
+            status: 200,
+            headers: { "content-type": "text/event-stream", "cache-control": "no-cache, no-transform" },
+          });
+        } catch (error) {
+          const api = APICallError.isInstance(error) ? error : APICallError.isInstance((error as { cause?: unknown })?.cause) ? (error as { cause: APICallError }).cause : null;
+          if (api) {
+            console.error("transcription failed", api.statusCode, api.responseBody?.slice(0, 300));
+            return json(api.statusCode ?? 502, { error: friendlyAiError(api.statusCode, "Non è stato possibile trascrivere l'audio.") });
+          }
+          console.error("transcription failed", error);
+          return json(500, { error: "Non è stato possibile trascrivere l'audio." });
         }
-
-        return new Response(res.body, {
-          status: res.status,
-          headers: {
-            "content-type": res.headers.get("content-type") ?? "text/event-stream",
-            "cache-control": "no-cache, no-transform",
-          },
-        });
       },
     },
   },
