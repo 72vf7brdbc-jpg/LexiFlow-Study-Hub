@@ -2,7 +2,7 @@
 import { APICallError, NoObjectGeneratedError, Output, jsonSchema, streamText, type ModelMessage } from "ai";
 import { z } from "zod";
 
-import { ANALYSIS_MODEL, createPersonalProvider, friendlyAiError, getPersonalApiKey } from "./provider.server";
+import { ANALYSIS_MODEL, GEMINI_OPTIONS, createPersonalProvider, friendlyAiError, getPersonalApiKey } from "./provider.server";
 import { goalName, languageName } from "../study-config";
 import { grammarContentSchema, supportedGrammarRules } from "../grammar";
 import { GRAMMAR_INSTRUCTIONS, grammarWireShape } from "./grammar.server";
@@ -157,6 +157,7 @@ export type AnalysisResult =
   | { ok: false; message: string };
 
 export async function analyzeMaterialWithAI(input: AnalysisInput, profile: LearnerProfile): Promise<AnalysisResult> {
+  let streamErr: unknown = null;
   try {
     const provider = createPersonalProvider(getPersonalApiKey());
     const result = streamText({
@@ -166,6 +167,8 @@ export async function analyzeMaterialWithAI(input: AnalysisInput, profile: Learn
       output: Output.object({ schema: wireSchema }),
       maxRetries: 0,
 
+      providerOptions: GEMINI_OPTIONS,
+      onError: ({ error }) => { streamErr = error; },
     });
 
     const raw = await result.output;
@@ -185,7 +188,8 @@ export async function analyzeMaterialWithAI(input: AnalysisInput, profile: Learn
       .slice(0, 25);
     const grammar_rules = supportedGrammarRules(parsed.data.grammar_rules, parsed.data.extracted_text);
     return { ok: true, analysis: { ...parsed.data, cards, grammar_rules } };
-  } catch (error) {
+  } catch (err) {
+    const error = streamErr ?? err;
     if (NoObjectGeneratedError.isInstance(error)) {
       console.error("no object generated", error.message);
       return { ok: false, message: "L'AI non è riuscita a leggere il materiale. Prova con un'immagine più nitida o un testo." };

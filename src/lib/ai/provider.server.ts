@@ -1,7 +1,8 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
-export const ANALYSIS_MODEL = "gemini-2.5-flash";
-export const COACH_MODEL = "gemini-2.5-flash";
+export const ANALYSIS_MODEL = "gemini-3.8-flash";
+export const COACH_MODEL = "gemini-3.8-flash";
+export const GEMINI_OPTIONS = { google: { thinkingConfig: { thinkingLevel: "low" as const } } };
 export const AI_SETUP_MESSAGE = "Gemini personale non è configurato. Puoi continuare a studiare e inserire contenuti manualmente; per analisi e chiarimenti occorre collegare una chiave Gemini personale.";
 
 export function getPersonalApiKey(): string {
